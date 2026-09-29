@@ -37,12 +37,15 @@ METRICS = {
     "ipc":                 r"CPU 0 cumulative IPC: (\S+) instructions",
     "l1d_load_miss":       r"L1D LOAD +ACCESS: +\d+ +HIT: +\d+ +MISS: +(\d+)",
     "l1d_load_mpki":       r"L1D LOAD +ACCESS:.*MPKI: (\S+)",
-    "l1d_accuracy":        r"L1D USEFUL LOAD PREFETCHES:.*ACCURACY: (\S+)",
+    # ChampSim's own accuracy: useful / prefetches issued to the lower level (L2), in %.
+    "l1d_accuracy_issued": r"L1D USEFUL LOAD PREFETCHES:.*ACCURACY: (\S+)",
+    "l1d_pf_useful":       r"L1D PREFETCH +REQUESTED:.*USEFUL: +(\d+)",
+    "l1d_pf_useless":      r"L1D PREFETCH +REQUESTED:.*USELESS: +(\d+)",
     "l2c_load_mpki":       r"L2C LOAD +ACCESS:.*MPKI: (\S+)",
     "l2c_data_load_mpki":  r"L2C DATA LOAD MPKI: (\S+)",
     "l2c_instr_load_mpki": r"L2C INSTRUCTION LOAD MPKI: (\S+)",
 }
-DERIVED = ["speedup", "l1d_coverage"]  # computed against base, see parse()
+DERIVED = ["speedup", "l1d_coverage", "l1d_accuracy_resolved"]  # see parse()
 
 # Plain ANSI codes work on any modern terminal; skip them when piped or on TERM=dumb.
 TTY = sys.stdout.isatty() and os.environ.get("TERM", "dumb") != "dumb"
@@ -245,6 +248,7 @@ def print_table(df, metrics, sort=None):
         table = pd.concat([table[~is_avg].sort_values(sort, ascending=False),
                            table[is_avg].sort_values(sort, ascending=False)])
     print(table.to_string(index=False, float_format="%.4f"))
+    print(paint("speedup and l1d_coverage are relative to base: no L1D prefetcher, LRU at L2C, same trace", 2))
     print(paint("avg rows: geometric mean for speedup, arithmetic mean otherwise; NaN values skipped", 2))
 
 
@@ -274,7 +278,11 @@ def parse(configs, trace_names, out):
     df = pd.DataFrame(rows)
     base = df[df.config == "base"].set_index("trace")
     df["speedup"] = df.ipc / df.trace.map(base.ipc)
-    # In %, like l1d_accuracy and PS.pdf's example plot. Undefined (NaN, not
+    # Second accuracy, over prefetches whose fate is known: useful / (useful +
+    # useless), in %. "Useless" counts prefetched lines evicted unused.
+    resolved = (df.l1d_pf_useful + df.l1d_pf_useless).replace(0, np.nan)
+    df["l1d_accuracy_resolved"] = 100 * df.l1d_pf_useful / resolved
+    # In %, like the accuracies and PS.pdf's example plot. Undefined (NaN, not
     # -inf) when the baseline has no misses.
     df["l1d_coverage"] = 100 * (1 - df.l1d_load_miss / df.trace.map(base.l1d_load_miss).replace(0, np.nan))
     df.to_csv(out / "stats.csv", index=False)
@@ -310,6 +318,7 @@ def cmd_selftest(_):
     assert abs(row["ipc"] - 0.4386) < 1e-9, row
     assert row["l1d_load_miss"] == 0, row
     assert row["l2c_instr_load_mpki"] == 0, row
+    assert row["l1d_pf_useful"] == 0 and row["l1d_pf_useless"] == 0, row
     print("[selftest] ok")
 
 

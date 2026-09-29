@@ -5,7 +5,7 @@
 #   every trace in ../traces/*.xz, 25M warmup, 25M simulation.
 # The no/lru baseline always runs as config "base".
 
-metrics = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy", "l1d_coverage"]
+metrics = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage"]
 
 # Settings for `--test` runs. Every key is optional; defaults shown.
 [test]

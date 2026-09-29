@@ -89,7 +89,9 @@ At the end, a summary: counts of builds, runs done/failed/skipped, total time, a
 | `ipc` | `CPU 0 cumulative IPC` |
 | `speedup` | `ipc / ipc` of `base`, same trace |
 | `l1d_load_miss`, `l1d_load_mpki` | `L1D LOAD` line |
-| `l1d_accuracy` | ChampSim's `ACCURACY` (useful / issued to lower level, in %) |
+| `l1d_accuracy_issued` | ChampSim's `ACCURACY`: useful / prefetches issued to the lower level (L2), in % |
+| `l1d_accuracy_resolved` | useful / (useful + useless), in %, from the `L1D PREFETCH REQUESTED` line. Useless = prefetched lines evicted unused. NaN when both are 0 |
+| `l1d_pf_useful`, `l1d_pf_useless` | the counts behind `l1d_accuracy_resolved` |
 | `l1d_coverage` | `100 * (1 - l1d_load_miss / l1d_load_miss of base)`, in % (PS.pdf's definition); NaN when base has 0 misses |
 | `l2c_load_mpki` | `L2C LOAD` line |
 | `l2c_instr_load_mpki`, `l2c_data_load_mpki` | `L2C INSTRUCTION/DATA LOAD MPKI` lines |
