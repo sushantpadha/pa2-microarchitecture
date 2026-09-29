@@ -1,0 +1,104 @@
+% Shared preamble for the PA2 summary. Layout follows PS.pdf: US letter,
+% 1in margins, justified text, centered "Task N" headings, unnumbered bold
+% subheadings, blue links, page number bottom right. The font is LaTeX's
+% default Computer Modern, as in the PA1 report.
+
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage[colorlinks,urlcolor=blue,linkcolor=black,citecolor=black]{hyperref}
+
+% Figures live in report/figures/, made from the published results in data/.
+\graphicspath{{figures/}{report/figures/}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\setlist{itemsep=2pt}
+
+% Headings are unnumbered, like PS.pdf; tasks are named by \task.
+\setcounter{secnumdepth}{0}
+\titleformat{\section}[display]{\centering}{}{0pt}{\Huge\bfseries}
+\titlespacing*{\section}{0pt}{0pt}{1.5em}
+\titleformat{\subsection}{\large\bfseries}{}{0pt}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{}{0pt}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[R]{\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% \task{1B}{Stride Pattern Prefetcher}: new page, italic "Task 1B" above a big
+% bold title, as in PS.pdf. The TOC entry reads "Task 1B: Stride Pattern Prefetcher".
+\newcommand{\task}[2]{%
+  \clearpage
+  \begin{center}{\Large\itshape Task #1}\end{center}
+  \vspace{-0.5em}
+  \section[Task #1: #2]{#2}%
+}
+
+% Title page: same block as PS.pdf's first page, then the team and contents.
+\newcommand{\reporttitle}{%
+  \thispagestyle{plain}%
+  \begin{center}
+    \vspace*{1em}
+    \rule{0.8\textwidth}{0.4pt}\\[1.5em]
+    {\huge Programming Assignment II: Summary}\\[1.2em]
+    {\large CS683: Advanced Computer Architecture, Autumn 2026\\
+            Computer Science and Engineering\\
+            Indian Institute of Technology, Bombay}\\[1.2em]
+    \rule{0.8\textwidth}{0.4pt}\\[2em]
+    \begin{tabular}{@{}ll@{}}
+      \textbf{Team Member} & \textbf{Roll No} \\
+      \midrule
+      Tejeswar                      & 24b0918 \\
+      Bhavesh Ramakrishnan Karthik  & 24b0945 \\
+      Sushant Padha                 & 24b1057 \\
+      Rhythm Kedia                  & 24b1071 \\
+    \end{tabular}
+  \end{center}
+  \vspace{2em}
+  \tableofcontents
+}
+
+% Code listings (style from the CUDA project report): gray background,
+% line numbers. Use [style=plain] for directory trees and shell commands.
+\definecolor{codegray}{rgb}{0.95,0.95,0.95}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\lstdefinestyle{cppcode}{
+    language=C++,
+    backgroundcolor=\color{codegray},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{gray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    numbers=left,
+    numbersep=5pt,
+    showstringspaces=false,
+    tabsize=4
+}
+\lstdefinestyle{plain}{
+    language={},
+    backgroundcolor=\color{codegray},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    numbers=none,
+    showstringspaces=false,
+    columns=fullflexible,
+    keepspaces=true
+}
+\lstset{style=cppcode}
+
+\emergencystretch=2em

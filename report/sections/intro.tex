@@ -1,0 +1,22 @@
+% !TEX root = ../report.tex
+\clearpage
+\section{Introduction}
+
+% TODO: two or three sentences on what this report covers.
+
+\subsection{Implementation files}
+
+% TODO: before submitting, check that every path below exists and matches its task.
+\begin{lstlisting}[style=plain]
+prefetcher/spp.l1d_pref             Task 1B: Stride Pattern Prefetcher
+replacement/irrip.l2c_repl          Task 2A: I-RRIP
+replacement/dyn_irrip.l2c_repl      Tasks 2B and 3: Dynamic I-RRIP
+\end{lstlisting}
+
+\subsection{Methodology}
+
+\begin{itemize}
+  \item Every provided trace is simulated with 25M warmup and 25M simulation instructions.
+  \item The baseline has no L1D prefetcher and LRU replacement at L2C.
+        Speedup is IPC divided by the baseline's IPC on the same trace.
+\end{itemize}

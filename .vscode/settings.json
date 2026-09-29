@@ -1,0 +1,28 @@
+{
+    // LaTeX Workshop: rebuild the summary on every save, with the same latexmk
+    // flags and build dir as report/Makefile. Section files carry
+    // "% !TEX root = ../report.tex", so saving a section rebuilds the whole report.
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    "latex-workshop.latex.search.rootFiles.include": ["report/report.tex"],
+    "latex-workshop.latex.outDir": "%DIR%/build",
+    "latex-workshop.latex.auxDir": "%DIR%/build",
+    "latex-workshop.latex.recipes": [
+        { "name": "latexmk (PA2 summary)", "tools": ["latexmk-pa2"] }
+    ],
+    "latex-workshop.latex.recipe.default": "first",
+    "latex-workshop.latex.tools": [
+        {
+            "name": "latexmk-pa2",
+            "command": "latexmk",
+            "args": [
+                "-pdf",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-outdir=%OUTDIR%",
+                "%DOC%"
+            ]
+        }
+    ],
+    "latex-workshop.view.pdf.viewer": "tab"
+}
