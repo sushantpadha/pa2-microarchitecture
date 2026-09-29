@@ -42,9 +42,9 @@ sim    = 5_000_000                                              # default 5M
 
 `--traces`, `--warmup` and `--sim` on the command line override either setting for one invocation. Trace globs are relative to the repo root.
 
-Check that the test settings exercise what the task measures. The start of a trace can be unrepresentative: on an earlier trace (`400.perlbench`), the baseline has 0 L1D load misses with the default 1M warmup + 5M sim, 774 with 5M + 20M, and 2842 with the final 25M + 25M. A test run with 0 baseline misses says nothing about a prefetcher. Look at the baseline's miss counts in `show --test` and raise `warmup`/`sim` in `[test]` if needed.
+Check that the test settings exercise what the task measures. The start of a trace can be unrepresentative: on an earlier trace (`400.perlbench`), the baseline has 0 L1D load misses with the default 1M warmup + 5M sim, 774 with 5M + 20M, and 2842 with the final 25M + 25M. A test run with 0 baseline misses says nothing about a prefetcher. Look at the baseline's miss counts in `show --test` and raise `warmup`/`sim` in `[test]` if needed. On the course traces, the default test settings are fine: the baseline has L1D load MPKI 8-12 on all three.
 
-For scale: a final run of `400.perlbench` (25M + 25M) took about a minute and a half on a 16-core laptop, builds included. The course traces (`Trace1-3.gz`, 2.5-5.3 GB compressed) haven't been timed yet.
+For scale: a final run of `400.perlbench` (25M + 25M) took about a minute and a half on a 16-core laptop, builds included. On the course traces (`Trace1-3.gz`), a test run (1M + 5M) takes about 15 s per trace; task 1's 9 test runs took 1 minute with builds. Final runs haven't been timed yet.
 
 ## Experiment files
 

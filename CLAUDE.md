@@ -103,7 +103,7 @@ Your job is logistics:
 The course traces are `../traces/Trace1.gz`, `Trace2.gz` and `Trace3.gz` (gzip, 2.5-5.3 GB each), outside the repo. `exp.py` uses all three by default.
 - **Never unzip them.** ChampSim reads them directly through `gunzip -c`.
 - **Always pass a trace as `<dir>/TraceN.gz`, with the directory named `traces`.** ChampSim seeds `rand()` from the third-from-last token of the trace path, split on `/ . , -` (`src/main.cc`, around line 1130). For `../traces/Trace1.gz` that token is `traces`, the same for all three traces. `rand()` is used in physical page allocation, so a differently named directory can change the numbers. A bare `Trace1.gz` has only two tokens, and the code then reads before the start of an array. `exp.py` always passes `../traces/TraceN.gz`.
-- The test settings (1M + 5M) were chosen on an earlier trace. Check that the baseline has misses on these traces at that length before relying on `--test`.
+- At the test settings (1M + 5M), the baseline has L1D load MPKI 8-12 on all three traces, and each run takes about 15 s (checked 2026-09-29). Final runs (25M + 25M) haven't been timed.
 
 ## Repo notes
 
