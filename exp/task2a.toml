@@ -1,0 +1,23 @@
+# Task 2A: Instruction-conscious RRIP (I-RRIP) at L2C.
+# PS.pdf asks for: IPC, speedup, L2C / L2 instruction / L2 data load MPKI.
+#
+# Final runs (default) use the spec's settings, which can't be set here:
+#   every trace in ../traces/*.xz, 25M warmup, 25M simulation.
+# The no/lru baseline always runs as config "base".
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+# Settings for `--test` runs. Every key is optional; defaults shown.
+[test]
+# traces = ["../traces/*.xz"]   # globs, relative to the repo root
+warmup = 1_000_000              # default 1_000_000
+sim    = 5_000_000              # default 5_000_000
+
+[config.irrip]
+repl = "irrip"                  # replacement/irrip.l2c_repl; default "lru"
+# pf = "no"                     # default "no"
+
+# Plain SRRIP, to separate the RRIP gain from the instruction-priority gain.
+# Needs the isInstruction signature change before it builds.
+# [config.rrip]
+# repl = "rrip"

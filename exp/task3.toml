@@ -1,0 +1,29 @@
+# Task 3: SPP + prefetch-aware Dynamic I-RRIP. Must beat both SPP alone and
+# Dynamic I-RRIP alone on IPC.
+# PS.pdf asks for: IPC, speedup, prefetch accuracy, coverage, and load MPKI
+# of L1D, L2C, L2 instruction, L2 data.
+#
+# Final runs (default) use the spec's settings, which can't be set here:
+#   every trace in ../traces/*.xz, 25M warmup, 25M simulation.
+# The no/lru baseline always runs as config "base".
+
+metrics = ["ipc", "speedup", "l1d_accuracy", "l1d_coverage", "l1d_load_mpki",
+           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+# Settings for `--test` runs. Every key is optional; defaults shown.
+[test]
+# traces = ["../traces/*.xz"]   # globs, relative to the repo root
+warmup = 1_000_000              # default 1_000_000
+sim    = 5_000_000              # default 5_000_000
+
+[config.spp]                    # SPP alone
+pf = "spp"
+
+[config.dyn]                    # Dynamic I-RRIP alone
+repl = "dyn_irrip"
+# env = { DYN_THRESH = "0.25" } # pin the value chosen in task 2B, if not the code default
+
+[config.spp_dyn]                # the combination
+pf = "spp"
+repl = "dyn_irrip"
+# env = { DYN_THRESH = "0.25" }

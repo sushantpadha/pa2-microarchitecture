@@ -1,0 +1,23 @@
+# Task 1B: Stride Pattern Prefetcher (SPP) at L1D.
+# PS.pdf asks for: IPC, speedup, L1D load MPKI, prefetch accuracy, coverage.
+#
+# Final runs (default) use the spec's settings, which can't be set here:
+#   every trace in ../traces/*.xz, 25M warmup, 25M simulation.
+# The no/lru baseline always runs as config "base".
+
+metrics = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy", "l1d_coverage"]
+
+# Settings for `--test` runs. Every key is optional; defaults shown.
+[test]
+# traces = ["../traces/*.xz"]   # globs, relative to the repo root
+warmup = 1_000_000              # default 1_000_000
+sim    = 5_000_000              # default 5_000_000
+
+[config.spp]
+pf = "spp"                      # prefetcher/spp.l1d_pref; default "no"
+# repl = "lru"                  # default "lru"
+# env = { SPP_THRESH_HI = ["0.5", "0.75"] }   # optional sweep of a getenv() knob
+
+# PS.pdf's example plots compare IP-stride and SPP against the baseline.
+[config.ip_stride]
+pf = "ip_stride"
