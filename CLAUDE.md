@@ -34,6 +34,7 @@ data/                 results the team chooses to publish (committed); see "Publ
 report/               LaTeX source of Summary.pdf; `make -C report`, usage in report/README.md
 Summary.pdf           the report deliverable, built from report/
 .vscode/settings.json LaTeX Workshop: rebuild the report on save
+submit.sh             builds the Moodle tarball from an explicit file list; review before submitting
 PS/PS.pdf             the spec (original)
 PS/PS.md, PS_images/  Markdown copy of the spec with its example plots; read this one
 ```
@@ -83,7 +84,7 @@ Your job is logistics:
 
 - Maintaining `tools/exp.py`, the `exp/*.toml` files and the Docker setup.
 - Running experiments and sweeps, and reading their results.
-- A submission script and a verification script: tarball name, contents, no traces included, all deliverables present.
+- Keeping `submit.sh` in line with `PS.md`'s submission instructions: tarball name, contents, no traces, all deliverables present.
 - Proofreading code: correctness bugs, page-boundary violations, off-by-one errors, stats that are wrong or misleading.
 - Proofreading `Summary.pdf` and other writeups.
 
