@@ -56,6 +56,7 @@ tools/exp.py run  exp/task1.toml             # final: every trace, 25M warmup + 
 - **One run per config and trace is enough.** ChampSim is deterministic (its seed comes from the trace name), so repeats give identical numbers. The summary across traces is the `avg` row: geometric mean for speedup, arithmetic mean otherwise.
 - **Read the plan `run` prints before waiting on it.** It lists every setting and where it came from, every config with defaults marked, and the builds and runs to do. A wrong trace set or instruction count shows up there.
 - **Check the stats before trusting them.** A metric that looks too good, is NaN, or doesn't move usually means the stat or the code is wrong. Read the raw log in `results/<task>/<config>/` before explaining the number.
+- **Final parameter values must be the code defaults.** The submission tarball has no `exp/` or `tools/`: graders build with `build_champsim.sh` and run the binary, so `getenv()` knobs fall back to their defaults. Once a sweep picks a value, make it the default in the code, so a plain build and run reproduces the reported results.
 - **Keep the tooling small.** Extend `exp.py` (a regex in `METRICS`, a key in the toml) only when a task needs it.
 
 ## Published data
@@ -95,6 +96,7 @@ Your job is logistics:
 - **No autopilot.** Stop and think before producing anything. Read the relevant code and `PS.md` section first. Shorter correct output beats longer generic output.
 - **Keep it simple.** Short scripts, few files, standard library first (bash, Python stdlib, pandas, matplotlib). Follow the `ponytail` skill for code, `plain-docs` for writing, and `caveman` for chat replies.
 - **Branches.** `dev` is the working branch. `main` only mirrors the course repo (`upstream`); it is pulled and merged into `dev` by hand. Never commit to `main`. Work on `dev` or a branch off it. Always ask before committing.
+- **Commit messages: one or two lines, nothing else.** A short conventional subject (`feat: ...`, `fix: ...`), at most one more line. No body paragraphs, no `Co-Authored-By` or other attribution lines. The commit history is graded.
 
 ## Repo notes
 
@@ -104,4 +106,5 @@ Your job is logistics:
 - Builds share one source tree, so two builds must never run at once. `exp.py` runs them one at a time.
 - `irrip.l2c_repl` and `dyn_irrip.l2c_repl` do not exist yet, even though `PS.pdf` says templates are provided.
 - `rrip.l2c_repl` does not build until the `isInstruction` signature change is done.
+- Never build with the host compiler for anything that runs. A GCC 16 static build compiles fine but aborts at startup (`std::bad_cast`); GCC 7 builds of the same code run correctly.
 - The usage text in `build_champsim.sh` is stale ("DCLIP", "PA2 Prefetcher"). The script accepts any name that has a matching `.l1d_pref` or `.l2c_repl` file.

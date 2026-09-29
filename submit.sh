@@ -42,6 +42,9 @@ TOP=pa2-microarchitecture                # folder name inside the tarball
 
 # Repository codebase + task implementations (prefetcher/, replacement/, and the
 # core files changed for Task 2A), generated results (data/), and the report.
+# This is enough to build with build_champsim.sh (GCC 7) and run the binary on a
+# trace; tested 2026-09-29 by extracting the tarball, building and running once.
+# Tuned parameters must be the code defaults for that run to match data/.
 INCLUDE=(
   README.md LICENSE Makefile build_champsim.sh
   branch inc src prefetcher replacement
