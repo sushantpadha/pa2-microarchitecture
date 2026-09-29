@@ -1,27 +1,22 @@
 {
-    // LaTeX Workshop: rebuild the summary on every save, with the same latexmk
-    // flags and build dir as report/Makefile. Section files carry
-    // "% !TEX root = ../report.tex", so saving a section rebuilds the whole report.
+    // LaTeX Workshop: every save runs `make -C report`, the same build as the
+    // command line, so Summary.pdf and report/build/report.pdf both update.
+    // Section files carry "% !TEX root = ../report.tex", so saving a section
+    // rebuilds the whole report. View it with "LaTeX Workshop: View LaTeX PDF"
+    // (report/build/report.pdf); that tab refreshes after each build.
     "latex-workshop.latex.autoBuild.run": "onSave",
     "latex-workshop.latex.search.rootFiles.include": ["report/report.tex"],
     "latex-workshop.latex.outDir": "%DIR%/build",
     "latex-workshop.latex.auxDir": "%DIR%/build",
     "latex-workshop.latex.recipes": [
-        { "name": "latexmk (PA2 summary)", "tools": ["latexmk-pa2"] }
+        { "name": "make (PA2 summary)", "tools": ["make-summary"] }
     ],
     "latex-workshop.latex.recipe.default": "first",
     "latex-workshop.latex.tools": [
         {
-            "name": "latexmk-pa2",
-            "command": "latexmk",
-            "args": [
-                "-pdf",
-                "-synctex=1",
-                "-interaction=nonstopmode",
-                "-file-line-error",
-                "-outdir=%OUTDIR%",
-                "%DOC%"
-            ]
+            "name": "make-summary",
+            "command": "make",
+            "args": ["-C", "%DIR%"]
         }
     ],
     "latex-workshop.view.pdf.viewer": "tab"
