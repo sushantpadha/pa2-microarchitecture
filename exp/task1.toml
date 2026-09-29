@@ -2,14 +2,14 @@
 # PS.pdf asks for: IPC, speedup, L1D load MPKI, prefetch accuracy, coverage.
 #
 # Final runs (default) use the spec's settings, which can't be set here:
-#   every trace in ../traces/*.xz, 25M warmup, 25M simulation.
+#   every trace in ../traces/Trace*.gz, 25M warmup, 25M simulation.
 # The no/lru baseline always runs as config "base".
 
 metrics = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage"]
 
 # Settings for `--test` runs. Every key is optional; defaults shown.
 [test]
-# traces = ["../traces/*.xz"]   # globs, relative to the repo root
+# traces = ["../traces/Trace*.gz"]   # globs, relative to the repo root; e.g. ["../traces/Trace1.gz"]
 warmup = 1_000_000              # default 1_000_000
 sim    = 5_000_000              # default 5_000_000
 

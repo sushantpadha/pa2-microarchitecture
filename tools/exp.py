@@ -26,8 +26,8 @@ REPO = Path(__file__).resolve().parent.parent
 BUILD = REPO / "tools" / "docker" / "build-gcc7.sh"
 # Final settings are fixed by PS.pdf: every trace, 25M warmup, 25M simulation.
 # Only --test (the toml's [test] section) or the CLI flags change them.
-FINAL = {"traces": ["../traces/*.xz"], "warmup": 25_000_000, "sim": 25_000_000}
-TEST = {"traces": ["../traces/*.xz"], "warmup": 1_000_000, "sim": 5_000_000}
+FINAL = {"traces": ["../traces/Trace*.gz"], "warmup": 25_000_000, "sim": 25_000_000}
+TEST = {"traces": ["../traces/Trace*.gz"], "warmup": 1_000_000, "sim": 5_000_000}
 TOP_KEYS = {"metrics", "test", "config"}
 CONFIG_KEYS = {"pf", "repl", "env"}
 END = "Region of Interest Statistics"  # printed only when a run finishes
@@ -121,7 +121,10 @@ def out_dir(path, warmup, sim):
 
 
 def trace_name(trace):
-    return Path(trace).name.removesuffix(".champsimtrace.xz")
+    name = Path(trace).name
+    for suffix in (".gz", ".xz", ".champsimtrace"):
+        name = name.removesuffix(suffix)
+    return name
 
 
 def done(log):

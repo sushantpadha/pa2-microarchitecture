@@ -11,24 +11,40 @@ tools/exp.py show exp/task1.toml ipc l1d_load_mpki        # pick columns
 tools/exp.py selftest                                     # check the stat regexes
 ```
 
+## Plain build and run, without exp.py
+
+For a one-off check, e.g. poking at a policy:
+
+```bash
+tools/docker/build-gcc7.sh spp lru dbg     # = ./build_champsim.sh spp lru dbg, with GCC 7
+./bin/hashed_perceptron-no-spp-no-no-no-no-no-lru-lru-lru-lru-lru-lru-lru-lru-1core-dbg \
+    -warmup_instructions 1000000 -simulation_instructions 5000000 \
+    -traces ../traces/Trace1.gz
+KNOB=0.3 ./bin/...                         # set a getenv() knob for this run
+```
+
+The binary name is printed on the last line of the build. The run prints stats to stdout; `CPU 0 cumulative IPC` is near the top of the final block.
+
+`./build_champsim.sh` alone uses the host's compiler. With GCC 16 it builds, but the binary aborts at startup with `std::bad_cast`, so use `build-gcc7.sh` for anything you run.
+
 ## Final and test settings
 
-Final settings are fixed by `PS.pdf` and can't be changed in a file: every trace in `../traces/*.xz`, 25M warmup, 25M simulation. Numbers for the report come from final runs only.
+Final settings are fixed by `PS.pdf` and can't be changed in a file: every trace in `../traces/Trace*.gz`, 25M warmup, 25M simulation. Numbers for the report come from final runs only.
 
 For testing, each file has a `[test]` section with smaller settings, used only when `--test` is passed. The flag makes the choice explicit. Without it you always get the final settings, so test numbers can't end up in the report by accident, and nobody has to edit a file back and forth between quick and final runs. Pick a few traces that behave like the full set:
 
 ```toml
 [test]
-traces = ["../traces/400.perlbench*", "../traces/429.mcf*"]   # default: all traces
+traces = ["../traces/Trace1.gz"]   # default: all traces
 warmup = 1_000_000                                              # default 1M
 sim    = 5_000_000                                              # default 5M
 ```
 
 `--traces`, `--warmup` and `--sim` on the command line override either setting for one invocation. Trace globs are relative to the repo root.
 
-Check that the test settings exercise what the task measures. The start of a trace can be unrepresentative: on `400.perlbench`, the baseline has 0 L1D load misses with the default 1M warmup + 5M sim, 774 with 5M + 20M, and 2842 with the final 25M + 25M. A test run with 0 baseline misses says nothing about a prefetcher. Look at the baseline's miss counts in `show --test` and raise `warmup`/`sim` in `[test]` if needed.
+Check that the test settings exercise what the task measures. The start of a trace can be unrepresentative: on an earlier trace (`400.perlbench`), the baseline has 0 L1D load misses with the default 1M warmup + 5M sim, 774 with 5M + 20M, and 2842 with the final 25M + 25M. A test run with 0 baseline misses says nothing about a prefetcher. Look at the baseline's miss counts in `show --test` and raise `warmup`/`sim` in `[test]` if needed.
 
-For scale: a final run of one trace (25M + 25M) takes about a minute and a half on a 16-core laptop, builds included, with configs running in parallel.
+For scale: a final run of `400.perlbench` (25M + 25M) took about a minute and a half on a 16-core laptop, builds included. The course traces (`Trace1-3.gz`, 2.5-5.3 GB compressed) haven't been timed yet.
 
 ## Experiment files
 
@@ -79,7 +95,7 @@ At the end, a summary: counts of builds, runs done/failed/skipped, total time, a
 
 - `run` skips runs whose log is already complete. Rerun the same command to fill in anything that failed or was interrupted.
 - `run` rebuilds every binary that still has runs to do, one build at a time, because `build_champsim.sh` writes into the shared source tree. Runs then go in parallel (`-j`, default 4). Each run is one single-threaded process using about 11 MB, so the limit is CPU cores: on a 16-core machine, `-j 12` to `-j 14` is fine.
-- ChampSim is deterministic: its random seed comes from the trace name. The same binary, trace and settings always give the same numbers, so there's no point repeating a run or averaging repeats.
+- ChampSim is deterministic: its random seed comes from the trace path (see CLAUDE.md, "Traces"). The same binary, trace and settings always give the same numbers, so there's no point repeating a run or averaging repeats.
 - `run` parses when it finishes. `show` only reads `stats.csv`, so give it the same `--test`/override flags as the `run`.
 
 ## Metrics

@@ -21,7 +21,7 @@ The baseline is no L1D prefetcher with LRU at L2C (`no`/`lru`). Speedup and cove
 ## Layout
 
 ```
-../traces/            trace files (*.champsimtrace.xz), outside the repo
+../traces/            the course traces Trace1.gz, Trace2.gz, Trace3.gz, outside the repo
 branch/ inc/ src/     ChampSim core
 prefetcher/           *.l1d_pref prefetchers (spp.l1d_pref is task 1B)
 replacement/          *.l2c_repl policies (irrip, dyn_irrip for tasks 2 and 3)
@@ -53,7 +53,7 @@ tools/exp.py run  exp/task1.toml             # final: every trace, 25M warmup + 
 - **Test first, then final.** `--test` uses the file's `[test]` section (a few representative traces, smaller instruction counts) to check that a change builds, runs, and moves the metric the expected way. Final settings are fixed by `PS.pdf` and can't be changed in a file. Only final runs go in the report. Test settings are only useful if they behave like the final ones: check that the baseline has misses at the level the task measures (the start of a trace can have none; see tools/README.md), and check the subset against a final run.
 - **A new experiment is a new config, not a new script.** Add a `[config.name]` with `pf`, `repl` and `env` to the task's toml. Commented lines in each file show the defaults.
 - **Parameters are swept through environment variables.** Policy code reads a knob with `getenv()` and keeps a built-in default, so the TAs' plain build still works. A list in `env` is swept. Don't add compile-time flags or new ChampSim command-line options for sweeps.
-- **One run per config and trace is enough.** ChampSim is deterministic (its seed comes from the trace name), so repeats give identical numbers. The summary across traces is the `avg` row: geometric mean for speedup, arithmetic mean otherwise.
+- **One run per config and trace is enough.** ChampSim is deterministic (its seed comes from the trace path, see "Traces"), so repeats give identical numbers. The summary across traces is the `avg` row: geometric mean for speedup, arithmetic mean otherwise.
 - **Read the plan `run` prints before waiting on it.** It lists every setting and where it came from, every config with defaults marked, and the builds and runs to do. A wrong trace set or instruction count shows up there.
 - **Check the stats before trusting them.** A metric that looks too good, is NaN, or doesn't move usually means the stat or the code is wrong. Read the raw log in `results/<task>/<config>/` before explaining the number.
 - **Final parameter values must be the code defaults.** The submission tarball has no `exp/` or `tools/`: graders build with `build_champsim.sh` and run the binary, so `getenv()` knobs fall back to their defaults. Once a sweep picks a value, make it the default in the code, so a plain build and run reproduces the reported results.
@@ -97,6 +97,13 @@ Your job is logistics:
 - **Keep it simple.** Short scripts, few files, standard library first (bash, Python stdlib, pandas, matplotlib). Follow the `ponytail` skill for code, `plain-docs` for writing, and `caveman` for chat replies.
 - **Branches.** `dev` is the working branch. `main` only mirrors the course repo (`upstream`); it is pulled and merged into `dev` by hand. Never commit to `main`. Work on `dev` or a branch off it. Always ask before committing.
 - **Commit messages: one or two lines, nothing else.** A short conventional subject (`feat: ...`, `fix: ...`), at most one more line. No body paragraphs, no `Co-Authored-By` or other attribution lines. The commit history is graded.
+
+## Traces
+
+The course traces are `../traces/Trace1.gz`, `Trace2.gz` and `Trace3.gz` (gzip, 2.5-5.3 GB each), outside the repo. `exp.py` uses all three by default.
+- **Never unzip them.** ChampSim reads them directly through `gunzip -c`.
+- **Always pass a trace as `<dir>/TraceN.gz`, with the directory named `traces`.** ChampSim seeds `rand()` from the third-from-last token of the trace path, split on `/ . , -` (`src/main.cc`, around line 1130). For `../traces/Trace1.gz` that token is `traces`, the same for all three traces. `rand()` is used in physical page allocation, so a differently named directory can change the numbers. A bare `Trace1.gz` has only two tokens, and the code then reads before the start of an array. `exp.py` always passes `../traces/TraceN.gz`.
+- The test settings (1M + 5M) were chosen on an earlier trace. Check that the baseline has misses on these traces at that length before relying on `--test`.
 
 ## Repo notes
 

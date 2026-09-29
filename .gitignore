@@ -18,6 +18,7 @@ inc/champsim.h.bak
 traces/
 *.champsimtrace*
 *.xz
+*.gz
 results/
 
 # report build (Summary.pdf itself is a deliverable and is committed)
@@ -27,5 +28,3 @@ report/build/
 __pycache__/
 .venv/
 
-# submission tarball (built by submit.sh)
-*.tar.gz
