@@ -35,7 +35,7 @@ EOF
 read -r -p "Type 'yes' to continue: " answer
 [ "$answer" = yes ] || { echo "aborted"; exit 1; }
 
-TEAM=dhurandhar                          # team name (PA1's); confirm before submitting
+TEAM=flipflops                           # team name
 LDAPS=(24b0918 24b0945 24b1057 24b1071)  # LDAP IDs, in the order the tarball name should list them
 TAR="${TEAM}_$(IFS=_; echo "${LDAPS[*]}")_pa2.tar.gz"
 TOP=pa2-microarchitecture                # folder name inside the tarball
