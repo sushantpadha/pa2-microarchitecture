@@ -73,7 +73,7 @@ At the end, a summary: counts of builds, runs done/failed/skipped, total time, a
 
 ## Tables
 
-`run` and `show` print one row per config and trace, plus one `avg` row per config: the geometric mean for `speedup` (it's a ratio) and the arithmetic mean for everything else. NaN values are left out of the average. `--sort` sorts the per-trace rows and the `avg` rows separately.
+`run` and `show` print one row per config and trace, plus one `avg` row per config: the geometric mean for `speedup` (it's a ratio) and the arithmetic mean for everything else. NaN values are left out of the average. `--sort` sorts the per-trace rows and the `avg` rows separately. Under the table, a note says what `speedup` and `l1d_coverage` are relative to: the `base` config (no L1D prefetcher, LRU at L2C) on the same trace.
 
 ## Behavior
 

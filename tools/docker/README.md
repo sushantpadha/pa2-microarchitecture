@@ -2,6 +2,8 @@
 
 All builds use GCC 7, the course's compiler, from the `gcc:7` Docker image. The host's own `gcc`/`g++` is never touched.
 
+Don't build with the host compiler instead. A GCC 16 static build compiles fine but aborts at startup with `std::bad_cast`; the same code built with GCC 7 runs correctly.
+
 `build_champsim.sh` links with `-static`, so the binary built in the container is a plain executable. Docker is only used for the build; the binary runs on the host.
 
 `tools/exp.py` calls `build-gcc7.sh` itself. You only need these scripts directly for setup, reset, or a one-off build.
