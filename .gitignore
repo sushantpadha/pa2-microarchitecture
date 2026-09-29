@@ -1,0 +1,31 @@
+# tools
+.serena/
+.claude/
+# .vscode is ignored except the shared LaTeX settings for the report
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+.DS_Store
+
+# build output
+obj/
+bin/
+# written by build_champsim.sh (sed -i.bak) on every build
+inc/champsim.h.bak
+
+# traces and experiment output (never committed; published results go in data/)
+traces/
+*.champsimtrace*
+*.xz
+results/
+
+# report build (Summary.pdf itself is a deliverable and is committed)
+report/build/
+
+# python
+__pycache__/
+.venv/
+
+# submission tarball (built by submit.sh)
+*.tar.gz
