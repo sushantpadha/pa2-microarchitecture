@@ -1,0 +1,719 @@
+[plan] exp/task2b_sweep.toml, final settings
+  warmup    25,000,000  final, fixed by PS.pdf
+  sim       25,000,000  final, fixed by PS.pdf
+  traces    3  final, fixed by PS.pdf: Trace1, Trace2, Trace3
+  output    results/task2b_sweep
+  parallel  -j 23
+  metrics   ipc speedup l2c_load_mpki l2c_instr_load_mpki l2c_data_load_mpki
+  available: ipc l1d_load_miss l1d_load_mpki l1d_accuracy_issued l1d_pf_useful l1d_pf_useless l2c_load_mpki l2c_data_load_mpki l2c_instr_load_mpki speedup l1d_coverage l1d_accuracy_resolved
+[plan] 63 config(s)
+  base                                pf=no            repl=lru                  env: none, code defaults  baseline, always run
+  n8.DYN_EPOCH=512.DYN_THRESH=0       pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=512 DYN_THRESH=0
+  n8.DYN_EPOCH=512.DYN_THRESH=0.15    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=512 DYN_THRESH=0.15
+  n8.DYN_EPOCH=512.DYN_THRESH=0.25    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=512 DYN_THRESH=0.25
+  n8.DYN_EPOCH=512.DYN_THRESH=0.4     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=512 DYN_THRESH=0.4
+  n8.DYN_EPOCH=512.DYN_THRESH=0.5     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=512 DYN_THRESH=0.5
+  n8.DYN_EPOCH=1024.DYN_THRESH=0      pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=1024 DYN_THRESH=0
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.15   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=1024 DYN_THRESH=0.15
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.25   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=1024 DYN_THRESH=0.25
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.4    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=1024 DYN_THRESH=0.4
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.5    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=1024 DYN_THRESH=0.5
+  n8.DYN_EPOCH=2048.DYN_THRESH=0      pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=2048 DYN_THRESH=0
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.15   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=2048 DYN_THRESH=0.15
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.25   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=2048 DYN_THRESH=0.25
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.4    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=2048 DYN_THRESH=0.4
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.5    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=8 DYN_EPOCH=2048 DYN_THRESH=0.5
+  n16.DYN_EPOCH=512.DYN_THRESH=0      pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=512 DYN_THRESH=0
+  n16.DYN_EPOCH=512.DYN_THRESH=0.15   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=512 DYN_THRESH=0.15
+  n16.DYN_EPOCH=512.DYN_THRESH=0.25   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=512 DYN_THRESH=0.25
+  n16.DYN_EPOCH=512.DYN_THRESH=0.4    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=512 DYN_THRESH=0.4
+  n16.DYN_EPOCH=512.DYN_THRESH=0.5    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=512 DYN_THRESH=0.5
+  n16.DYN_EPOCH=1024.DYN_THRESH=0     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=1024 DYN_THRESH=0
+  n16.DYN_EPOCH=1024.DYN_THRESH=0.15  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=1024 DYN_THRESH=0.15
+  n16.DYN_EPOCH=1024.DYN_THRESH=0.25  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=1024 DYN_THRESH=0.25
+  n16.DYN_EPOCH=1024.DYN_THRESH=0.4   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=1024 DYN_THRESH=0.4
+  n16.DYN_EPOCH=1024.DYN_THRESH=0.5   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=1024 DYN_THRESH=0.5
+  n16.DYN_EPOCH=2048.DYN_THRESH=0     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=2048 DYN_THRESH=0
+  n16.DYN_EPOCH=2048.DYN_THRESH=0.15  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=2048 DYN_THRESH=0.15
+  n16.DYN_EPOCH=2048.DYN_THRESH=0.25  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=2048 DYN_THRESH=0.25
+  n16.DYN_EPOCH=2048.DYN_THRESH=0.4   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=2048 DYN_THRESH=0.4
+  n16.DYN_EPOCH=2048.DYN_THRESH=0.5   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=16 DYN_EPOCH=2048 DYN_THRESH=0.5
+  n32.DYN_EPOCH=512.DYN_THRESH=0      pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=512 DYN_THRESH=0
+  n32.DYN_EPOCH=512.DYN_THRESH=0.15   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=512 DYN_THRESH=0.15
+  n32.DYN_EPOCH=512.DYN_THRESH=0.25   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=512 DYN_THRESH=0.25
+  n32.DYN_EPOCH=512.DYN_THRESH=0.4    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=512 DYN_THRESH=0.4
+  n32.DYN_EPOCH=512.DYN_THRESH=0.5    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=512 DYN_THRESH=0.5
+  n32.DYN_EPOCH=1024.DYN_THRESH=0     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=1024 DYN_THRESH=0
+  n32.DYN_EPOCH=1024.DYN_THRESH=0.15  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=1024 DYN_THRESH=0.15
+  n32.DYN_EPOCH=1024.DYN_THRESH=0.25  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=1024 DYN_THRESH=0.25
+  n32.DYN_EPOCH=1024.DYN_THRESH=0.4   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=1024 DYN_THRESH=0.4
+  n32.DYN_EPOCH=1024.DYN_THRESH=0.5   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=1024 DYN_THRESH=0.5
+  n32.DYN_EPOCH=2048.DYN_THRESH=0     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=2048 DYN_THRESH=0
+  n32.DYN_EPOCH=2048.DYN_THRESH=0.15  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=2048 DYN_THRESH=0.15
+  n32.DYN_EPOCH=2048.DYN_THRESH=0.25  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=2048 DYN_THRESH=0.25
+  n32.DYN_EPOCH=2048.DYN_THRESH=0.4   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=2048 DYN_THRESH=0.4
+  n32.DYN_EPOCH=2048.DYN_THRESH=0.5   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=32 DYN_EPOCH=2048 DYN_THRESH=0.5
+  n64.DYN_EPOCH=512.DYN_THRESH=0      pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=512 DYN_THRESH=0
+  n64.DYN_EPOCH=512.DYN_THRESH=0.15   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=512 DYN_THRESH=0.15
+  n64.DYN_EPOCH=512.DYN_THRESH=0.25   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=512 DYN_THRESH=0.25
+  n64.DYN_EPOCH=512.DYN_THRESH=0.4    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=512 DYN_THRESH=0.4
+  n64.DYN_EPOCH=512.DYN_THRESH=0.5    pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=512 DYN_THRESH=0.5
+  n64.DYN_EPOCH=1024.DYN_THRESH=0     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=1024 DYN_THRESH=0
+  n64.DYN_EPOCH=1024.DYN_THRESH=0.15  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=1024 DYN_THRESH=0.15
+  n64.DYN_EPOCH=1024.DYN_THRESH=0.25  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=1024 DYN_THRESH=0.25
+  n64.DYN_EPOCH=1024.DYN_THRESH=0.4   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=1024 DYN_THRESH=0.4
+  n64.DYN_EPOCH=1024.DYN_THRESH=0.5   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=1024 DYN_THRESH=0.5
+  n64.DYN_EPOCH=2048.DYN_THRESH=0     pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=2048 DYN_THRESH=0
+  n64.DYN_EPOCH=2048.DYN_THRESH=0.15  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=2048 DYN_THRESH=0.15
+  n64.DYN_EPOCH=2048.DYN_THRESH=0.25  pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=2048 DYN_THRESH=0.25
+  n64.DYN_EPOCH=2048.DYN_THRESH=0.4   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=2048 DYN_THRESH=0.4
+  n64.DYN_EPOCH=2048.DYN_THRESH=0.5   pf=no (default)  repl=dyn_irrip            DYN_PLACE=0 DYN_LEADERS=64 DYN_EPOCH=2048 DYN_THRESH=0.5
+  irrip                               pf=no (default)  repl=irrip                env: none, code defaults
+  rrip                                pf=no (default)  repl=rrip                 env: none, code defaults
+[plan] builds: no/dyn_irrip, no/irrip, no/lru, no/rrip
+[plan] runs: 189 to do, 0 already done
+
+[build] start  no/dyn_irrip
+[build] done   no/dyn_irrip (13s), log: results/task2b_sweep/_build/no-dyn_irrip.log
+[build] start  no/irrip
+[build] done   no/irrip (9s), log: results/task2b_sweep/_build/no-irrip.log
+[build] start  no/lru
+[build] done   no/lru (10s), log: results/task2b_sweep/_build/no-lru.log
+[build] start  no/rrip
+[build] done   no/rrip (12s), log: results/task2b_sweep/_build/no-rrip.log
+[run] start  results/task2b_sweep/base/Trace3.log
+[run] start  results/task2b_sweep/base/Trace1.log
+[run] start  results/task2b_sweep/base/Trace2.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log (182s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log (190s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log (197s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log (198s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log (201s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log (203s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log (208s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log (210s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log (210s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/base/Trace3.log (213s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log (215s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/base/Trace2.log (216s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log (216s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log (217s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log (219s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log (219s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log (221s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log (224s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log (225s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log (229s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log (229s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/base/Trace1.log (233s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log (237s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log (186s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log (213s)
+[run] start  results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log (184s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log (189s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log (213s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log (211s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log (212s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log (188s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log (205s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log (201s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log (203s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log (198s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log (217s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log (207s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log (214s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log (213s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log (229s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log (208s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log (223s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log (231s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log (218s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log (219s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log (219s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log (192s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n8.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log (201s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log (183s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log (194s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log (214s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log (215s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log (203s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log (213s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log (207s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log (196s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log (206s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log (201s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log (187s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log (213s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log (223s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log (213s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log (189s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log (215s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log (226s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log (220s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log (224s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log (237s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log (245s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log (193s)
+[run] start  results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log (219s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log (207s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log (203s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log (204s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log (233s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log (208s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log (200s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log (178s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log (223s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log (206s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log (216s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log (207s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log (216s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log (206s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log (221s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log (218s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log (220s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log (201s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log (204s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log (220s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log (200s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log (251s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log (205s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n16.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log (227s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log (219s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log (214s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log (233s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log (207s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log (229s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log (240s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log (255s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log (241s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log (227s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log (256s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log (239s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log (238s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log (247s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log (236s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log (234s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log (232s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log (240s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log (260s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log (274s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log (252s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log (236s)
+[run] start  results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log (203s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log (236s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log (213s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log (232s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log (182s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log (195s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log (226s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log (198s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log (211s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log (239s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log (235s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log (229s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log (229s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log (205s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log (194s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log (243s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log (205s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log (216s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log (228s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log (224s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log (211s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log (241s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n32.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log (195s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0/Trace3.log (192s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0/Trace1.log (241s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.15/Trace1.log (196s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.25/Trace1.log (197s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.15/Trace3.log (215s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.15/Trace2.log (216s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0/Trace2.log (250s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.5/Trace2.log (210s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.5/Trace3.log (205s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.25/Trace3.log (226s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0/Trace1.log (216s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.4/Trace3.log (230s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.4/Trace2.log (237s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.5/Trace1.log (234s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0/Trace2.log (223s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.4/Trace1.log (256s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace1.log (192s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=512.DYN_THRESH=0.25/Trace2.log (266s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace1.log (219s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0/Trace3.log (227s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace3.log (212s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.15/Trace2.log (218s)
+[run] start  results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace2.log (227s)
+[run] start  results/task2b_sweep/irrip/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.25/Trace3.log (197s)
+[run] start  results/task2b_sweep/irrip/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace3.log (196s)
+[run] start  results/task2b_sweep/irrip/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace1.log (214s)
+[run] start  results/task2b_sweep/rrip/Trace1.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.4/Trace2.log (226s)
+[run] start  results/task2b_sweep/rrip/Trace2.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0/Trace3.log (192s)
+[run] start  results/task2b_sweep/rrip/Trace3.log
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0/Trace2.log (196s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace1.log (224s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace2.log (224s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=1024.DYN_THRESH=0.5/Trace3.log (219s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace3.log (176s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace1.log (205s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace1.log (202s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace3.log (207s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.15/Trace2.log (210s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0/Trace1.log (231s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace3.log (191s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.25/Trace2.log (199s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace2.log (194s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace1.log (200s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.4/Trace2.log (200s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace3.log (192s)
+[run] done   results/task2b_sweep/n64.DYN_EPOCH=2048.DYN_THRESH=0.5/Trace1.log (201s)
+[run] done   results/task2b_sweep/irrip/Trace1.log (172s)
+[run] done   results/task2b_sweep/irrip/Trace3.log (117s)
+[run] done   results/task2b_sweep/rrip/Trace1.log (120s)
+[run] done   results/task2b_sweep/irrip/Trace2.log (140s)
+[run] done   results/task2b_sweep/rrip/Trace2.log (113s)
+[run] done   results/task2b_sweep/rrip/Trace3.log (100s)
+
+[summary] 4 build(s), 189 run(s): 189 done, 0 failed, 0 skipped (already done), 1847s
+                            config  trace    ipc  speedup  l2c_load_mpki  l2c_instr_load_mpki  l2c_data_load_mpki
+                              base Trace1 0.2323   1.0000        17.6956              10.3377              7.3580
+                              base Trace2 0.2512   1.0000        27.3568              18.8533              8.5035
+                              base Trace3 0.3821   1.0000         3.9542               1.1241              2.8302
+     n8.DYN_EPOCH=512.DYN_THRESH=0 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+     n8.DYN_EPOCH=512.DYN_THRESH=0 Trace2 0.2638   1.0504        19.2703               7.6912             11.5791
+     n8.DYN_EPOCH=512.DYN_THRESH=0 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+  n8.DYN_EPOCH=512.DYN_THRESH=0.15 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+  n8.DYN_EPOCH=512.DYN_THRESH=0.15 Trace2 0.2638   1.0503        19.2489               7.7054             11.5435
+  n8.DYN_EPOCH=512.DYN_THRESH=0.15 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+  n8.DYN_EPOCH=512.DYN_THRESH=0.25 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+  n8.DYN_EPOCH=512.DYN_THRESH=0.25 Trace2 0.2638   1.0503        19.2590               7.7177             11.5413
+  n8.DYN_EPOCH=512.DYN_THRESH=0.25 Trace3 0.3843   1.0059         3.8744               0.7269              3.1475
+   n8.DYN_EPOCH=512.DYN_THRESH=0.4 Trace1 0.2339   1.0069        18.6156               9.0194              9.5962
+   n8.DYN_EPOCH=512.DYN_THRESH=0.4 Trace2 0.2614   1.0408        19.8359               8.6897             11.1462
+   n8.DYN_EPOCH=512.DYN_THRESH=0.4 Trace3 0.3823   1.0005         3.9927               0.9243              3.0684
+   n8.DYN_EPOCH=512.DYN_THRESH=0.5 Trace1 0.2320   0.9985        18.0816              10.2213              7.8602
+   n8.DYN_EPOCH=512.DYN_THRESH=0.5 Trace2 0.2611   1.0396        20.1525               9.1186             11.0339
+   n8.DYN_EPOCH=512.DYN_THRESH=0.5 Trace3 0.3818   0.9994         4.0346               0.9888              3.0458
+    n8.DYN_EPOCH=1024.DYN_THRESH=0 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+    n8.DYN_EPOCH=1024.DYN_THRESH=0 Trace2 0.2638   1.0504        19.2703               7.6912             11.5791
+    n8.DYN_EPOCH=1024.DYN_THRESH=0 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace2 0.2638   1.0504        19.2703               7.6912             11.5791
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace2 0.2638   1.0504        19.2603               7.7539             11.5064
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace1 0.2338   1.0062        18.5847               9.0027              9.5820
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace2 0.2621   1.0436        19.6216               8.5028             11.1188
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace3 0.3823   1.0005         3.9900               0.9213              3.0687
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace1 0.2321   0.9991        17.6381              10.5627              7.0754
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace2 0.2602   1.0361        20.8718              10.0261             10.8457
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace3 0.3817   0.9991         4.0382               1.1949              2.8433
+    n8.DYN_EPOCH=2048.DYN_THRESH=0 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+    n8.DYN_EPOCH=2048.DYN_THRESH=0 Trace2 0.2638   1.0504        19.2703               7.6912             11.5791
+    n8.DYN_EPOCH=2048.DYN_THRESH=0 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace2 0.2638   1.0504        19.2703               7.6912             11.5791
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace1 0.2339   1.0067        18.5922               8.9931              9.5991
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace2 0.2638   1.0504        19.2703               7.6912             11.5791
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace3 0.3850   1.0076         3.8649               0.6784              3.1866
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace1 0.2338   1.0063        18.5980               8.9914              9.6066
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace2 0.2602   1.0360        20.8525              10.0128             10.8397
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace3 0.3849   1.0075         3.8690               0.6783              3.1907
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace1 0.2321   0.9989        17.6372              10.5657              7.0715
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace2 0.2586   1.0297        21.5992              11.6209              9.9783
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace3 0.3817   0.9992         4.0368               1.1937              2.8431
+    n16.DYN_EPOCH=512.DYN_THRESH=0 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+    n16.DYN_EPOCH=512.DYN_THRESH=0 Trace2 0.2637   1.0499        19.3534               7.7976             11.5558
+    n16.DYN_EPOCH=512.DYN_THRESH=0 Trace3 0.3849   1.0074         3.8708               0.6837              3.1872
+ n16.DYN_EPOCH=512.DYN_THRESH=0.15 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+ n16.DYN_EPOCH=512.DYN_THRESH=0.15 Trace2 0.2626   1.0454        19.3623               8.0927             11.2696
+ n16.DYN_EPOCH=512.DYN_THRESH=0.15 Trace3 0.3826   1.0015         3.9575               0.8269              3.1306
+ n16.DYN_EPOCH=512.DYN_THRESH=0.25 Trace1 0.2340   1.0072        18.5793               9.0136              9.5656
+ n16.DYN_EPOCH=512.DYN_THRESH=0.25 Trace2 0.2618   1.0424        19.5012               8.2893             11.2119
+ n16.DYN_EPOCH=512.DYN_THRESH=0.25 Trace3 0.3820   0.9998         4.0010               0.9428              3.0582
+  n16.DYN_EPOCH=512.DYN_THRESH=0.4 Trace1 0.2331   1.0031        18.5870               9.1946              9.3924
+  n16.DYN_EPOCH=512.DYN_THRESH=0.4 Trace2 0.2615   1.0411        19.7117               8.5704             11.1413
+  n16.DYN_EPOCH=512.DYN_THRESH=0.4 Trace3 0.3820   0.9998         3.9934               0.9492              3.0441
+  n16.DYN_EPOCH=512.DYN_THRESH=0.5 Trace1 0.2324   1.0001        17.7351              10.2141              7.5210
+  n16.DYN_EPOCH=512.DYN_THRESH=0.5 Trace2 0.2611   1.0394        19.9406               8.8313             11.1093
+  n16.DYN_EPOCH=512.DYN_THRESH=0.5 Trace3 0.3816   0.9988         4.0822               1.1139              2.9683
+   n16.DYN_EPOCH=1024.DYN_THRESH=0 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+   n16.DYN_EPOCH=1024.DYN_THRESH=0 Trace2 0.2637   1.0499        19.3534               7.7976             11.5558
+   n16.DYN_EPOCH=1024.DYN_THRESH=0 Trace3 0.3849   1.0074         3.8708               0.6837              3.1872
+n16.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+n16.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace2 0.2637   1.0498        19.3145               7.8020             11.5125
+n16.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace3 0.3849   1.0074         3.8708               0.6837              3.1872
+n16.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+n16.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace2 0.2622   1.0439        19.5902               8.3469             11.2433
+n16.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace3 0.3833   1.0032         3.9360               0.8495              3.0865
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace1 0.2339   1.0069        18.6099               9.0373              9.5726
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace2 0.2617   1.0418        19.8932               8.7815             11.1117
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace3 0.3832   1.0029         3.9420               0.8500              3.0920
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace1 0.2322   0.9993        17.6574              10.5837              7.0737
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace2 0.2611   1.0396        20.0807               9.0706             11.0100
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace3 0.3817   0.9991         4.0394               1.1962              2.8431
+   n16.DYN_EPOCH=2048.DYN_THRESH=0 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+   n16.DYN_EPOCH=2048.DYN_THRESH=0 Trace2 0.2637   1.0499        19.3534               7.7976             11.5558
+   n16.DYN_EPOCH=2048.DYN_THRESH=0 Trace3 0.3849   1.0074         3.8708               0.6837              3.1872
+n16.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+n16.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace2 0.2637   1.0499        19.3534               7.7976             11.5558
+n16.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace3 0.3849   1.0074         3.8708               0.6837              3.1872
+n16.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace1 0.2339   1.0068        18.5818               9.0139              9.5679
+n16.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace2 0.2637   1.0499        19.3534               7.7976             11.5558
+n16.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace3 0.3849   1.0074         3.8708               0.6837              3.1872
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace1 0.2338   1.0062        18.5758               9.0195              9.5563
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace2 0.2606   1.0378        20.5289               9.6218             10.9071
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace3 0.3849   1.0075         3.8666               0.6827              3.1840
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace1 0.2321   0.9991        17.6369              10.5624              7.0745
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace2 0.2598   1.0345        21.1622              10.4792             10.6830
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace3 0.3817   0.9991         4.0389               1.1947              2.8442
+    n32.DYN_EPOCH=512.DYN_THRESH=0 Trace1 0.2339   1.0065        18.5630               9.0342              9.5288
+    n32.DYN_EPOCH=512.DYN_THRESH=0 Trace2 0.2636   1.0494        19.4349               7.8996             11.5352
+    n32.DYN_EPOCH=512.DYN_THRESH=0 Trace3 0.3849   1.0073         3.8739               0.6903              3.1836
+ n32.DYN_EPOCH=512.DYN_THRESH=0.15 Trace1 0.2339   1.0066        18.5637               9.0308              9.5329
+ n32.DYN_EPOCH=512.DYN_THRESH=0.15 Trace2 0.2619   1.0429        19.4387               8.2499             11.1888
+ n32.DYN_EPOCH=512.DYN_THRESH=0.15 Trace3 0.3824   1.0008         3.9540               0.8532              3.1008
+ n32.DYN_EPOCH=512.DYN_THRESH=0.25 Trace1 0.2339   1.0068        18.5633               9.0327              9.5306
+ n32.DYN_EPOCH=512.DYN_THRESH=0.25 Trace2 0.2619   1.0429        19.4364               8.2622             11.1742
+ n32.DYN_EPOCH=512.DYN_THRESH=0.25 Trace3 0.3820   0.9998         4.0194               1.0033              3.0161
+  n32.DYN_EPOCH=512.DYN_THRESH=0.4 Trace1 0.2326   1.0009        18.2100               9.4127              8.7973
+  n32.DYN_EPOCH=512.DYN_THRESH=0.4 Trace2 0.2617   1.0420        19.5790               8.4199             11.1591
+  n32.DYN_EPOCH=512.DYN_THRESH=0.4 Trace3 0.3823   1.0005         4.0415               1.0465              2.9950
+  n32.DYN_EPOCH=512.DYN_THRESH=0.5 Trace1 0.2321   0.9990        17.5732              10.2694              7.3038
+  n32.DYN_EPOCH=512.DYN_THRESH=0.5 Trace2 0.2607   1.0378        19.8052               8.6870             11.1181
+  n32.DYN_EPOCH=512.DYN_THRESH=0.5 Trace3 0.3822   1.0002         4.0463               1.0539              2.9924
+   n32.DYN_EPOCH=1024.DYN_THRESH=0 Trace1 0.2339   1.0065        18.5630               9.0342              9.5288
+   n32.DYN_EPOCH=1024.DYN_THRESH=0 Trace2 0.2636   1.0494        19.4349               7.8996             11.5352
+   n32.DYN_EPOCH=1024.DYN_THRESH=0 Trace3 0.3849   1.0073         3.8739               0.6903              3.1836
+n32.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace1 0.2339   1.0065        18.5630               9.0342              9.5288
+n32.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace2 0.2617   1.0419        19.5885               8.3957             11.1928
+n32.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace3 0.3833   1.0032         3.8980               0.7942              3.1038
+n32.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace1 0.2340   1.0073        18.5650               9.0347              9.5304
+n32.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace2 0.2617   1.0421        19.5869               8.4072             11.1798
+n32.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace3 0.3820   0.9999         3.9955               0.9360              3.0595
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace1 0.2330   1.0029        18.3973               9.2852              9.1121
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace2 0.2614   1.0408        19.8077               8.6962             11.1115
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace3 0.3820   0.9999         4.0226               1.0135              3.0091
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace1 0.2323   0.9998        17.6562              10.5835              7.0728
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace2 0.2610   1.0392        20.0599               8.9784             11.0816
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace3 0.3816   0.9988         4.0690               1.0837              2.9853
+   n32.DYN_EPOCH=2048.DYN_THRESH=0 Trace1 0.2339   1.0065        18.5630               9.0342              9.5288
+   n32.DYN_EPOCH=2048.DYN_THRESH=0 Trace2 0.2636   1.0494        19.4349               7.8996             11.5352
+   n32.DYN_EPOCH=2048.DYN_THRESH=0 Trace3 0.3849   1.0073         3.8739               0.6903              3.1836
+n32.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace1 0.2339   1.0065        18.5630               9.0342              9.5288
+n32.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace2 0.2635   1.0493        19.3946               7.9061             11.4884
+n32.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace3 0.3849   1.0073         3.8739               0.6903              3.1836
+n32.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace1 0.2339   1.0065        18.5630               9.0342              9.5288
+n32.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace2 0.2623   1.0445        19.5048               8.3189             11.1859
+n32.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace3 0.3835   1.0037         3.9334               0.8348              3.0986
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace1 0.2339   1.0067        18.5986               9.0604              9.5382
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace2 0.2615   1.0412        19.8070               8.6952             11.1118
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace3 0.3820   0.9998         4.0126               0.9959              3.0166
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace1 0.2322   0.9992        17.6613              10.5881              7.0732
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace2 0.2610   1.0391        20.1843               9.2161             10.9682
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace3 0.3815   0.9986         4.0527               1.0992              2.9535
+    n64.DYN_EPOCH=512.DYN_THRESH=0 Trace1 0.2337   1.0057        18.5340               9.0958              9.4382
+    n64.DYN_EPOCH=512.DYN_THRESH=0 Trace2 0.2631   1.0476        19.6430               8.2193             11.4237
+    n64.DYN_EPOCH=512.DYN_THRESH=0 Trace3 0.3847   1.0068         3.8830               0.7093              3.1738
+ n64.DYN_EPOCH=512.DYN_THRESH=0.15 Trace1 0.2339   1.0069        18.5438               9.0850              9.4588
+ n64.DYN_EPOCH=512.DYN_THRESH=0.15 Trace2 0.2616   1.0418        19.5928               8.4385             11.1543
+ n64.DYN_EPOCH=512.DYN_THRESH=0.15 Trace3 0.3821   1.0000         3.9726               0.9320              3.0405
+ n64.DYN_EPOCH=512.DYN_THRESH=0.25 Trace1 0.2338   1.0063        18.5346               9.0867              9.4479
+ n64.DYN_EPOCH=512.DYN_THRESH=0.25 Trace2 0.2615   1.0411        19.6552               8.5529             11.1023
+ n64.DYN_EPOCH=512.DYN_THRESH=0.25 Trace3 0.3821   1.0002         4.0398               1.0468              2.9931
+  n64.DYN_EPOCH=512.DYN_THRESH=0.4 Trace1 0.2325   1.0008        17.9154               9.4748              8.4406
+  n64.DYN_EPOCH=512.DYN_THRESH=0.4 Trace2 0.2614   1.0409        19.6813               8.5929             11.0884
+  n64.DYN_EPOCH=512.DYN_THRESH=0.4 Trace3 0.3821   1.0002         4.0384               1.0566              2.9818
+  n64.DYN_EPOCH=512.DYN_THRESH=0.5 Trace1 0.2320   0.9987        17.6168              10.2069              7.4099
+  n64.DYN_EPOCH=512.DYN_THRESH=0.5 Trace2 0.2608   1.0384        19.6792               8.9270             10.7523
+  n64.DYN_EPOCH=512.DYN_THRESH=0.5 Trace3 0.3823   1.0006         4.0336               1.0642              2.9694
+   n64.DYN_EPOCH=1024.DYN_THRESH=0 Trace1 0.2337   1.0057        18.5340               9.0958              9.4382
+   n64.DYN_EPOCH=1024.DYN_THRESH=0 Trace2 0.2631   1.0476        19.6492               8.2209             11.4282
+   n64.DYN_EPOCH=1024.DYN_THRESH=0 Trace3 0.3847   1.0068         3.8830               0.7093              3.1738
+n64.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace1 0.2340   1.0070        18.5419               9.0897              9.4522
+n64.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace2 0.2616   1.0414        19.6402               8.5341             11.1061
+n64.DYN_EPOCH=1024.DYN_THRESH=0.15 Trace3 0.3824   1.0009         3.9700               0.8648              3.1053
+n64.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace1 0.2337   1.0060        18.5656               9.1190              9.4466
+n64.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace2 0.2616   1.0416        19.6287               8.5343             11.0944
+n64.DYN_EPOCH=1024.DYN_THRESH=0.25 Trace3 0.3820   0.9998         4.0030               0.9880              3.0149
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace1 0.2330   1.0030        18.3308               9.3520              8.9787
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace2 0.2614   1.0407        19.7371               8.6838             11.0533
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.4 Trace3 0.3821   1.0002         4.0407               1.0468              2.9939
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace1 0.2322   0.9992        17.5779              10.3734              7.2046
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace2 0.2612   1.0399        19.8782               8.8492             11.0290
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.5 Trace3 0.3822   1.0002         4.0477               1.0552              2.9924
+   n64.DYN_EPOCH=2048.DYN_THRESH=0 Trace1 0.2337   1.0057        18.5340               9.0958              9.4382
+   n64.DYN_EPOCH=2048.DYN_THRESH=0 Trace2 0.2631   1.0476        19.6492               8.2209             11.4282
+   n64.DYN_EPOCH=2048.DYN_THRESH=0 Trace3 0.3847   1.0068         3.8830               0.7093              3.1738
+n64.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace1 0.2339   1.0069        18.5411               9.0915              9.4496
+n64.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace2 0.2616   1.0415        19.7087               8.5393             11.1694
+n64.DYN_EPOCH=2048.DYN_THRESH=0.15 Trace3 0.3847   1.0069         3.8762               0.7038              3.1724
+n64.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace1 0.2339   1.0069        18.5411               9.0915              9.4496
+n64.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace2 0.2612   1.0400        19.9004               8.8393             11.0610
+n64.DYN_EPOCH=2048.DYN_THRESH=0.25 Trace3 0.3822   1.0003         3.9930               0.9362              3.0568
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace1 0.2334   1.0044        18.4626               9.2345              9.2282
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace2 0.2612   1.0401        19.8886               8.8286             11.0601
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.4 Trace3 0.3820   0.9998         4.0154               1.0014              3.0140
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace1 0.2322   0.9995        17.6532              10.5805              7.0727
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace2 0.2609   1.0386        20.0881               9.0970             10.9911
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.5 Trace3 0.3820   0.9998         4.0119               0.9974              3.0146
+                             irrip Trace1 0.2339   1.0068        18.5995               8.9840              9.6156
+                             irrip Trace2 0.2639   1.0509        19.2480               7.6273             11.6206
+                             irrip Trace3 0.3850   1.0076         3.8688               0.6748              3.1939
+                              rrip Trace1 0.2322   0.9995        17.6387              10.5618              7.0769
+                              rrip Trace2 0.2518   1.0026        25.7458              17.7813              7.9645
+                              rrip Trace3 0.3817   0.9991         4.0395               1.1970              2.8424
+                              base    avg 0.2885   1.0000        16.3355              10.1050              6.2305
+     n8.DYN_EPOCH=512.DYN_THRESH=0    avg 0.2942   1.0214        13.9091               5.7876              8.1216
+  n8.DYN_EPOCH=512.DYN_THRESH=0.15    avg 0.2942   1.0213        13.9020               5.7923              8.1097
+  n8.DYN_EPOCH=512.DYN_THRESH=0.25    avg 0.2940   1.0208        13.9085               5.8126              8.0960
+   n8.DYN_EPOCH=512.DYN_THRESH=0.4    avg 0.2925   1.0159        14.1481               6.2111              7.9369
+   n8.DYN_EPOCH=512.DYN_THRESH=0.5    avg 0.2916   1.0123        14.0896               6.7762              7.3133
+    n8.DYN_EPOCH=1024.DYN_THRESH=0    avg 0.2942   1.0214        13.9091               5.7876              8.1216
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.15    avg 0.2942   1.0214        13.9091               5.7876              8.1216
+ n8.DYN_EPOCH=1024.DYN_THRESH=0.25    avg 0.2942   1.0214        13.9058               5.8085              8.0973
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.4    avg 0.2927   1.0166        14.0654               6.1423              7.9231
+  n8.DYN_EPOCH=1024.DYN_THRESH=0.5    avg 0.2914   1.0113        14.1827               7.2612              6.9214
+    n8.DYN_EPOCH=2048.DYN_THRESH=0    avg 0.2942   1.0214        13.9091               5.7876              8.1216
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.15    avg 0.2942   1.0214        13.9091               5.7876              8.1216
+ n8.DYN_EPOCH=2048.DYN_THRESH=0.25    avg 0.2942   1.0214        13.9091               5.7876              8.1216
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.4    avg 0.2930   1.0165        14.4398               6.5608              7.8790
+  n8.DYN_EPOCH=2048.DYN_THRESH=0.5    avg 0.2908   1.0092        14.4244               7.7934              6.6310
+    n16.DYN_EPOCH=512.DYN_THRESH=0    avg 0.2942   1.0212        13.9353               5.8317              8.1036
+ n16.DYN_EPOCH=512.DYN_THRESH=0.15    avg 0.2930   1.0177        13.9672               5.9778              7.9894
+ n16.DYN_EPOCH=512.DYN_THRESH=0.25    avg 0.2926   1.0163        14.0272               6.0819              7.9452
+  n16.DYN_EPOCH=512.DYN_THRESH=0.4    avg 0.2922   1.0145        14.0974               6.2381              7.8593
+  n16.DYN_EPOCH=512.DYN_THRESH=0.5    avg 0.2917   1.0126        13.9193               6.7198              7.1995
+   n16.DYN_EPOCH=1024.DYN_THRESH=0    avg 0.2942   1.0212        13.9353               5.8317              8.1036
+n16.DYN_EPOCH=1024.DYN_THRESH=0.15    avg 0.2942   1.0211        13.9224               5.8332              8.0892
+n16.DYN_EPOCH=1024.DYN_THRESH=0.25    avg 0.2931   1.0178        14.0360               6.0701              7.9659
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.4    avg 0.2929   1.0171        14.1484               6.2229              7.9254
+ n16.DYN_EPOCH=1024.DYN_THRESH=0.5    avg 0.2917   1.0125        13.9258               6.9502              6.9756
+   n16.DYN_EPOCH=2048.DYN_THRESH=0    avg 0.2942   1.0212        13.9353               5.8317              8.1036
+n16.DYN_EPOCH=2048.DYN_THRESH=0.15    avg 0.2942   1.0212        13.9353               5.8317              8.1036
+n16.DYN_EPOCH=2048.DYN_THRESH=0.25    avg 0.2942   1.0212        13.9353               5.8317              8.1036
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.4    avg 0.2931   1.0171        14.3238               6.4413              7.8824
+ n16.DYN_EPOCH=2048.DYN_THRESH=0.5    avg 0.2912   1.0108        14.2793               7.4121              6.8673
+    n32.DYN_EPOCH=512.DYN_THRESH=0    avg 0.2941   1.0209        13.9573               5.8747              8.0825
+ n32.DYN_EPOCH=512.DYN_THRESH=0.15    avg 0.2927   1.0166        13.9855               6.0446              7.9409
+ n32.DYN_EPOCH=512.DYN_THRESH=0.25    avg 0.2926   1.0163        14.0064               6.0994              7.9070
+  n32.DYN_EPOCH=512.DYN_THRESH=0.4    avg 0.2922   1.0143        13.9435               6.2930              7.6505
+  n32.DYN_EPOCH=512.DYN_THRESH=0.5    avg 0.2916   1.0122        13.8082               6.6701              7.1381
+   n32.DYN_EPOCH=1024.DYN_THRESH=0    avg 0.2941   1.0209        13.9573               5.8747              8.0825
+n32.DYN_EPOCH=1024.DYN_THRESH=0.15    avg 0.2929   1.0171        14.0165               6.0747              7.9418
+n32.DYN_EPOCH=1024.DYN_THRESH=0.25    avg 0.2926   1.0163        14.0491               6.1259              7.9232
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.4    avg 0.2921   1.0144        14.0759               6.3316              7.7442
+ n32.DYN_EPOCH=1024.DYN_THRESH=0.5    avg 0.2916   1.0124        13.9284               6.8818              7.0465
+   n32.DYN_EPOCH=2048.DYN_THRESH=0    avg 0.2941   1.0209        13.9573               5.8747              8.0825
+n32.DYN_EPOCH=2048.DYN_THRESH=0.15    avg 0.2941   1.0208        13.9438               5.8769              8.0669
+n32.DYN_EPOCH=2048.DYN_THRESH=0.25    avg 0.2932   1.0181        14.0004               6.0627              7.9378
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.4    avg 0.2925   1.0157        14.1394               6.2505              7.8889
+ n32.DYN_EPOCH=2048.DYN_THRESH=0.5    avg 0.2916   1.0122        13.9661               6.9678              6.9983
+    n64.DYN_EPOCH=512.DYN_THRESH=0    avg 0.2938   1.0199        14.0200               6.0081              8.0119
+ n64.DYN_EPOCH=512.DYN_THRESH=0.15    avg 0.2926   1.0161        14.0364               6.1518              7.8845
+ n64.DYN_EPOCH=512.DYN_THRESH=0.25    avg 0.2925   1.0157        14.0765               6.2288              7.8478
+  n64.DYN_EPOCH=512.DYN_THRESH=0.4    avg 0.2920   1.0138        13.8784               6.3748              7.5036
+  n64.DYN_EPOCH=512.DYN_THRESH=0.5    avg 0.2917   1.0124        13.7765               6.7327              7.0439
+   n64.DYN_EPOCH=1024.DYN_THRESH=0    avg 0.2938   1.0199        14.0221               6.0087              8.0134
+n64.DYN_EPOCH=1024.DYN_THRESH=0.15    avg 0.2926   1.0163        14.0507               6.1629              7.8879
+n64.DYN_EPOCH=1024.DYN_THRESH=0.25    avg 0.2924   1.0156        14.0658               6.2138              7.8520
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.4    avg 0.2922   1.0145        14.0362               6.3609              7.6753
+ n64.DYN_EPOCH=1024.DYN_THRESH=0.5    avg 0.2918   1.0129        13.8346               6.7593              7.0753
+   n64.DYN_EPOCH=2048.DYN_THRESH=0    avg 0.2938   1.0199        14.0221               6.0087              8.0134
+n64.DYN_EPOCH=2048.DYN_THRESH=0.15    avg 0.2934   1.0183        14.0420               6.1115              7.9305
+n64.DYN_EPOCH=2048.DYN_THRESH=0.25    avg 0.2924   1.0156        14.1448               6.2890              7.8558
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.4    avg 0.2922   1.0146        14.1222               6.3548              7.7674
+ n64.DYN_EPOCH=2048.DYN_THRESH=0.5    avg 0.2917   1.0125        13.9177               6.8916              7.0261
+                             irrip    avg 0.2943   1.0216        13.9054               5.7620              8.1434
+                              rrip    avg 0.2886   1.0004        15.8080               9.8467              5.9613
+speedup and l1d_coverage are relative to base: no L1D prefetcher, LRU at L2C, same trace
+avg rows: geometric mean for speedup, arithmetic mean otherwise; NaN values skipped
+[summary] all columns: results/task2b_sweep/stats.csv
