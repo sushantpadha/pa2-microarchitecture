@@ -10,6 +10,7 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{caption}
+\usepackage{float}
 \usepackage{enumitem}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
@@ -102,3 +103,6 @@
 \lstset{style=cppcode}
 
 \emergencystretch=2em
+
+% Bright red TODO for anything not yet verified. Remove every one before submitting.
+\newcommand{\brt}[1]{\textcolor{red}{\textbf{TODO: #1}}}

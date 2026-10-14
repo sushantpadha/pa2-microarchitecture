@@ -6,7 +6,7 @@
 
 LATEXMK := latexmk -pdf -synctex=1 -interaction=nonstopmode -halt-on-error -file-line-error -outdir=build
 
-../Summary.pdf: report.tex common.tex $(wildcard sections/*.tex) $(wildcard figures/*)
+../Summary.pdf: report.tex common.tex $(wildcard sections/*.tex) $(wildcard figures/*) $(wildcard tables/*)
 	$(LATEXMK) report.tex
 	cp build/report.pdf $@
 
