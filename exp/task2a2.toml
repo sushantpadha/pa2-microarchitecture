@@ -10,4 +10,4 @@ sim    = 10_000_000
 
 [config.cap]
 repl = "irrip"
-env = { LVL = "3", IRRIP_CODE_MAX = ["4", "5", "6", "7", "8"] }
+env = { LVL = "3", IRRIP_CODE_MAX = ["4", "5", "6", "7", "8"] }  # assumes LVL=3 for code_max logic and L2C_WAYS=8

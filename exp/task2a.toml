@@ -16,9 +16,9 @@ sim    = 10_000_000              # default 5_000_000
 [config.irrip]
 repl = "irrip"                  # replacement/irrip.l2c_repl; default "lru"
 # pf = "no"                     # default "no"
-env = { LVL = ["1", "2", "3"] }
+env = { LVL = ["2", "3", "4", "5"] }   # LVL=1 is the default: see irrip_default
 
-# No env: what the graders' plain build runs (LVL default -1).
+# No env: what the graders' plain build runs (LVL default 1).
 [config.irrip_default]
 repl = "irrip"
 
