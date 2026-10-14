@@ -1,0 +1,33 @@
+# Task 2B hysteresis: T = 0.15 with a band of +-DYN_HYST (switch to I-RRIP above
+# T + h, to RRIP at or below T - h), on the short epochs where the policy switches
+# most. Placement 0. h = 0 repeats task2b_sweep's configs so this file stands alone.
+# Final settings: every trace, 25M warmup, 25M simulation.
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+[test]
+warmup = 1_000_000
+sim    = 5_000_000
+
+[config.n8]
+repl = "dyn_irrip"
+env = { DYN_PLACE = "0", DYN_LEADERS = "8", DYN_THRESH = "0.15", DYN_EPOCH = ["512", "1024"], DYN_HYST = ["0", "0.05", "0.1"] }
+
+[config.n16]
+repl = "dyn_irrip"
+env = { DYN_PLACE = "0", DYN_LEADERS = "16", DYN_THRESH = "0.15", DYN_EPOCH = ["512", "1024"], DYN_HYST = ["0", "0.05", "0.1"] }
+
+[config.n32]
+repl = "dyn_irrip"
+env = { DYN_PLACE = "0", DYN_LEADERS = "32", DYN_THRESH = "0.15", DYN_EPOCH = ["512", "1024"], DYN_HYST = ["0", "0.05", "0.1"] }
+
+[config.n64]
+repl = "dyn_irrip"
+env = { DYN_PLACE = "0", DYN_LEADERS = "64", DYN_THRESH = "0.15", DYN_EPOCH = ["512", "1024"], DYN_HYST = ["0", "0.05", "0.1"] }
+
+
+[config.irrip]
+repl = "irrip"
+
+[config.rrip]
+repl = "rrip"

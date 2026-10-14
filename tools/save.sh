@@ -26,7 +26,7 @@ cp "$src" "$dst/$policy.l2c_repl.ran"
 
 stamp=$(date -r "$res/stats.csv" "+%Y-%m-%d %H:%M")
 commit=$(git rev-parse --short HEAD)
-git diff --quiet HEAD -- "$src" 2>/dev/null && state="committed when saved" || state="NOT committed when saved"
+git ls-files --error-unmatch "$src" >/dev/null 2>&1 && git diff --quiet HEAD -- "$src" && state="committed when saved" || state="NOT committed when saved"
 
 cat > "$dst/README.md" <<EOF
 # $run final run
