@@ -18,15 +18,15 @@ L1I has LRU replacement policy
 L1D has LRU replacement policy
 Initialize SRRIP state for L2C
 LLC has LRU replacement policy
-Heartbeat CPU 0 instructions: 10000002 cycles: 2953850 heartbeat IPC: 3.38541 cumulative IPC: 3.38541 (Simulation time: 0 hr 0 min 17 sec) 
-Heartbeat CPU 0 instructions: 20000001 cycles: 5915134 heartbeat IPC: 3.37691 cumulative IPC: 3.38116 (Simulation time: 0 hr 0 min 30 sec) 
+Heartbeat CPU 0 instructions: 10000002 cycles: 2953850 heartbeat IPC: 3.38541 cumulative IPC: 3.38541 (Simulation time: 0 hr 0 min 23 sec) 
+Heartbeat CPU 0 instructions: 20000001 cycles: 5915134 heartbeat IPC: 3.37691 cumulative IPC: 3.38116 (Simulation time: 0 hr 0 min 47 sec) 
 
-Warmup complete CPU 0 instructions: 25000004 cycles: 7349536 (Simulation time: 0 hr 0 min 36 sec) 
+Warmup complete CPU 0 instructions: 25000004 cycles: 7349536 (Simulation time: 0 hr 0 min 56 sec) 
 
-Heartbeat CPU 0 instructions: 30000003 cycles: 31326778 heartbeat IPC: 0.39352 cumulative IPC: 0.208531 (Simulation time: 0 hr 0 min 47 sec) 
-Heartbeat CPU 0 instructions: 40000000 cycles: 71717183 heartbeat IPC: 0.247583 cumulative IPC: 0.233036 (Simulation time: 0 hr 1 min 18 sec) 
-Heartbeat CPU 0 instructions: 50000000 cycles: 115000917 heartbeat IPC: 0.231034 cumulative IPC: 0.232231 (Simulation time: 0 hr 1 min 40 sec) 
-Finished CPU 0 instructions: 25000000 cycles: 107651385 cumulative IPC: 0.232231 (Simulation time: 0 hr 1 min 40 sec) 
+Heartbeat CPU 0 instructions: 30000003 cycles: 31326778 heartbeat IPC: 0.39352 cumulative IPC: 0.208531 (Simulation time: 0 hr 1 min 15 sec) 
+Heartbeat CPU 0 instructions: 40000000 cycles: 71717183 heartbeat IPC: 0.247583 cumulative IPC: 0.233036 (Simulation time: 0 hr 1 min 50 sec) 
+Heartbeat CPU 0 instructions: 50000000 cycles: 115000917 heartbeat IPC: 0.231034 cumulative IPC: 0.232231 (Simulation time: 0 hr 2 min 23 sec) 
+Finished CPU 0 instructions: 25000000 cycles: 107651385 cumulative IPC: 0.232231 (Simulation time: 0 hr 2 min 23 sec) 
 
 ChampSim completed all CPUs
 
