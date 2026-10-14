@@ -228,15 +228,15 @@ def print_plan(args, configs, traces, warmup, sim, src, out, metrics, to_build, 
     print(flush=True)
 
 
-def summarize(df, metrics):
+def summarize(df, metrics, geo=("speedup",)):
     """Per-trace rows plus one "avg" row per config: geometric mean for
-    speedup (a ratio), arithmetic mean for everything else."""
+    the ratio metrics in `geo`, arithmetic mean for everything else."""
     avg = []
     for name, g in df.groupby("config", sort=False):
         row = {"config": name, "trace": "avg"}
         for m in metrics:
             vals = g[m].dropna()
-            if m == "speedup":
+            if m in geo:
                 row[m] = float(np.exp(np.log(vals).mean())) if len(vals) else float("nan")
             else:
                 row[m] = vals.mean()
@@ -244,8 +244,8 @@ def summarize(df, metrics):
     return pd.concat([df[["config", "trace", *metrics]], pd.DataFrame(avg)], ignore_index=True)
 
 
-def print_table(df, metrics, sort=None):
-    table = summarize(df, metrics)
+def print_table(df, metrics, sort=None, ratios=None):
+    table = summarize(df, metrics, metrics if ratios else ("speedup",))
     if sort:
         is_avg = table.trace == "avg"
         table = pd.concat([table[~is_avg].sort_values(sort, ascending=False),
@@ -258,6 +258,9 @@ def print_table(df, metrics, sort=None):
     print(header)
     for line, trace in zip(rows, table.trace):
         print(paint(line, code[trace]))
+    if ratios:
+        print(paint(f"every value is a ratio to config {ratios!r}, same trace; avg rows: geometric mean", 2))
+        return
     print(paint("speedup and l1d_coverage are relative to base: no L1D prefetcher, LRU at L2C, same trace", 2))
     print(paint("avg rows: geometric mean for speedup, arithmetic mean otherwise; NaN values skipped", 2))
 
@@ -307,7 +310,13 @@ def cmd_show(args):
         sys.exit(f"[show] no {(out / 'stats.csv').relative_to(REPO)}; run the same command with `run` first")
     df = pd.read_csv(out / "stats.csv")
     metrics = args.metrics or spec.get("metrics", ["ipc", "speedup"])
-    print_table(df, metrics, args.sort)
+    if args.ratios:
+        if args.ratios not in set(df.config):
+            sys.exit(f"[show] no config {args.ratios!r} in stats.csv")
+        ref = df[df.config == args.ratios].set_index("trace")
+        for m in metrics:
+            df[m] = df[m] / df.trace.map(ref[m]).replace(0, np.nan)
+    print_table(df, metrics, args.sort, args.ratios)
 
     if args.plot:
         import matplotlib
@@ -317,11 +326,12 @@ def cmd_show(args):
                 say("plot", paint(f"skip {m}: every value is NaN", 33))
                 continue
             ax = df.pivot_table(index="trace", columns="config", values=m).plot.bar(figsize=(8, 4), rot=30)
-            ax.set_ylabel(m)
+            name = f"{m}_vs_{args.ratios}" if args.ratios else m  # never overwrite the plain plots
+            ax.set_ylabel(f"{m} / {args.ratios}" if args.ratios else m)
             ax.legend(title="config", bbox_to_anchor=(1.01, 1), loc="upper left")  # outside the bars
             ax.figure.tight_layout()
-            ax.figure.savefig(out / f"{m}.png", dpi=150)
-            say("plot", (out / f"{m}.png").relative_to(REPO))
+            ax.figure.savefig(out / f"{name}.png", dpi=150)
+            say("plot", (out / f"{name}.png").relative_to(REPO))
 
 
 def cmd_selftest(_):
@@ -350,6 +360,7 @@ def main():
     show = sub.choices["show"]
     show.add_argument("metrics", nargs="*", help="columns to print (default: metrics in the toml)")
     show.add_argument("--sort", help="sort rows by this column, descending")
+    show.add_argument("--ratios", metavar="CONFIG", help="show every metric as a ratio to CONFIG, geometric-mean avg")
     show.add_argument("--plot", action="store_true", help="save one bar chart per metric")
     sub.add_parser("selftest")
     args = ap.parse_args()
