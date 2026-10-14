@@ -19,5 +19,11 @@
             "args": ["-C", "%DIR%"]
         }
     ],
-    "latex-workshop.view.pdf.viewer": "tab"
+    "latex-workshop.view.pdf.viewer": "tab",
+    "files.associations": {
+        "*.*_repl": "cpp",
+        "*.l2c_repl": "cpp",
+        "bitset": "cpp",
+        "set": "cpp"
+    }
 }
