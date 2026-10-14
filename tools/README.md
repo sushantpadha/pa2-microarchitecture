@@ -6,6 +6,7 @@
 tools/exp.py run  exp/task1.toml --test                   # test settings from the file's [test] section
 tools/exp.py run  exp/task1.toml                          # final: every trace, 25M warmup + 25M sim
 tools/exp.py run  exp/task3.toml --only spp_dyn -j 8      # one config, 8 runs in parallel
+tools/exp.py run  exp/task2a.toml --test --force         # rerun after a code change (base kept)
 tools/exp.py show exp/task1.toml --test --sort speedup --plot
 tools/exp.py show exp/task1.toml ipc l1d_load_mpki        # pick columns
 tools/exp.py selftest                                     # check the stat regexes

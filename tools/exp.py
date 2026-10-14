@@ -158,7 +158,7 @@ def cmd_run(args):
     for name, c in configs.items():
         for t in traces:
             log = out / name / f"{trace_name(t)}.log"
-            if done(log):
+            if done(log) and not (args.force and name != "base"):
                 skipped += 1
                 continue
             to_build.add((c["pf"], c["repl"]))
@@ -250,7 +250,14 @@ def print_table(df, metrics, sort=None):
         is_avg = table.trace == "avg"
         table = pd.concat([table[~is_avg].sort_values(sort, ascending=False),
                            table[is_avg].sort_values(sort, ascending=False)])
-    print(table.to_string(index=False, float_format="%.4f"))
+    # One color per trace (bright red, green, blue, yellow, magenta, cyan), avg rows bold.
+    colors = ["91", "92", "94", "93", "95", "96"]
+    traces = [t for t in dict.fromkeys(table.trace) if t != "avg"]
+    code = {t: colors[i % len(colors)] for i, t in enumerate(traces)} | {"avg": "1"}
+    header, *rows = table.to_string(index=False, float_format="%.4f").splitlines()
+    print(header)
+    for line, trace in zip(rows, table.trace):
+        print(paint(line, code[trace]))
     print(paint("speedup and l1d_coverage are relative to base: no L1D prefetcher, LRU at L2C, same trace", 2))
     print(paint("avg rows: geometric mean for speedup, arithmetic mean otherwise; NaN values skipped", 2))
 
@@ -338,6 +345,7 @@ def main():
     run = sub.choices["run"]
     run.add_argument("--only", nargs="+", help="config names to run (base is always included)")
     run.add_argument("-j", type=int, default=4, help="parallel runs")
+    run.add_argument("--force", action="store_true", help="rerun configs whose logs exist (not base)")
     show = sub.choices["show"]
     show.add_argument("metrics", nargs="*", help="columns to print (default: metrics in the toml)")
     show.add_argument("--sort", help="sort rows by this column, descending")
