@@ -318,6 +318,7 @@ def cmd_show(args):
                 continue
             ax = df.pivot_table(index="trace", columns="config", values=m).plot.bar(figsize=(8, 4), rot=30)
             ax.set_ylabel(m)
+            ax.legend(title="config", bbox_to_anchor=(1.01, 1), loc="upper left")  # outside the bars
             ax.figure.tight_layout()
             ax.figure.savefig(out / f"{m}.png", dpi=150)
             say("plot", (out / f"{m}.png").relative_to(REPO))

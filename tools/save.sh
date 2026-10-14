@@ -16,6 +16,8 @@ if [ -e "$dst" ] && [ "$force" != "--force" ]; then
     exit 1
 fi
 rm -rf "$dst"   # data/ is tracked by git, so an old copy can be recovered
+# Refresh the plots so they match stats.csv (show --plot writes them into results/<run>).
+[ -f "exp/$run.toml" ] && tools/exp.py show "exp/$run.toml" --plot >/dev/null
 mkdir -p "$dst"
 cp -r "$res"/. "$dst"/
 rm -rf "$dst/_build"
@@ -34,6 +36,7 @@ TODO: one or two lines on what this run compares.
 Last run $stamp, tree at commit $commit. \`$policy.l2c_repl.ran\` is the policy source that ran ($state).
 
 - \`stats.csv\`: one row per config and trace.
+- \`<metric>.png\`: one bar chart per metric, from \`tools/exp.py show --plot\`.
 - \`<config>/<trace>.log\`: raw ChampSim output; the first line records the command and env.
 - \`$run.toml\`: the experiment file used, if there was one.
 EOF
