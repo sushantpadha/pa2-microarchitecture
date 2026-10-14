@@ -1,5 +1,3 @@
-// Task 3 working copy of dyn_irrip.l2c_repl (+ prefetch awareness: PF_HIT, PF_INS, PF_TIE).
-// The winner gets merged back into dyn_irrip.l2c_repl, which PS.pdf names for Task 3.
 #include "cache.h"
 #include <cstdlib>
 
@@ -15,13 +13,11 @@ uint32_t n_ia, n_im, n_ta, n_tm;  // instr accesses, instr misses, total accesse
 uint32_t epoch_left;
 uint8_t irrip_mode = 1;   // followers start in I-RRIP
 
-// Task 3: prefetch awareness. An L1D prefetch fills L2C and L1D together, so
-// the L2C copy can only be hit after L1D evicts the line; often it never is.
-// l2_pf marks a line filled by a PREFETCH and not yet hit by a demand.
+// ! task 3 logic
+// l2_pf marks a line filled by a PREFETCH and not yet hit by a demand
 uint8_t l2_pf[L2C_SET][L2C_WAY];
 // pf_ctr: saturating counter of how often prefetched lines die unused,
-// trained only in leader sets (which treat prefetches like demand), so the
-// policy's own choices don't feed back into it. Saturated = prefetches dead.
+// trained only in leader sets (which treat prefetches like demand)
 uint32_t pf_hit_mode, pf_ins_mode, pf_tie, pf_ctr_max;
 uint32_t pf_ctr;
 // knob values: 0 = like demand, 1 = always prefetch-aware, 2 = follow pf_ctr
@@ -83,8 +79,7 @@ uint32_t CACHE::l2c_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, c
 {
     uint8_t irrip = !l2_leader[set] && irrip_mode;
 
-    // I-RRIP: irrip.l2c_repl lvl 8 (aac3749): evict data first, age instr lines
-    // once every 4 rounds. RRIP: plain rrip.l2c_repl.
+    // irrip + rrip
     uint32_t round = 0;
     while (1) {
         // PF_TIE: among lines at max RRPV, evict an unused prefetched line first
@@ -93,6 +88,7 @@ uint32_t CACHE::l2c_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, c
                 if (l2_pf[set][i] && l2_rrpv[set][i] == maxRRPV)
                     return i;
 
+        // irrip: evict data before instruction
         if (irrip)
             for (int i=0; i<L2C_WAY; i++)
                 if (!l2_instr[set][i] && l2_rrpv[set][i] == maxRRPV)
@@ -102,6 +98,7 @@ uint32_t CACHE::l2c_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, c
             if (l2_rrpv[set][i] == maxRRPV)
                 return i;
 
+        // irrip: age instruction lines once every 4 rounds 
         for (int i=0; i<L2C_WAY; i++)
             if (!(irrip && (round%4 != 3) && l2_instr[set][i]))
                 l2_rrpv[set][i]++;

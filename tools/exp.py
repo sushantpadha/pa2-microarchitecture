@@ -27,7 +27,7 @@ BUILD = REPO / "tools" / "docker" / "build-gcc7.sh"
 # Final settings are fixed by PS.pdf: every trace, 25M warmup, 25M simulation.
 # Only --test (the toml's [test] section) or the CLI flags change them.
 FINAL = {"traces": ["../traces/Trace*.gz"], "warmup": 25_000_000, "sim": 25_000_000}
-TEST = {"traces": ["../traces/Trace*.gz"], "warmup": 1_000_000, "sim": 5_000_000}
+TEST = {"traces": ["../traces/Trace*.gz"], "warmup": 2_000_000, "sim": 10_000_000}
 TOP_KEYS = {"metrics", "test", "config"}
 CONFIG_KEYS = {"pf", "repl", "env"}
 END = "Region of Interest Statistics"  # printed only when a run finishes

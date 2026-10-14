@@ -10,8 +10,8 @@ metrics = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy_issued", "l1d_accura
 # Settings for `--test` runs. Every key is optional; defaults shown.
 [test]
 # traces = ["../traces/Trace*.gz"]   # globs, relative to the repo root; e.g. ["../traces/Trace1.gz"]
-warmup = 1_000_000              # default 1_000_000
-sim    = 5_000_000              # default 5_000_000
+warmup = 2_000_000              # default 2_000_000
+sim    = 10_000_000             # default 10_000_000
 
 [config.spp]
 pf = "spp"                      # prefetcher/spp.l1d_pref; default "no"

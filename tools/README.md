@@ -22,13 +22,13 @@ With `--test`, `exp.py` uses the file's `[test]` section instead. Each key is op
 ```toml
 [test]
 traces = ["../traces/Trace1.gz"]   # default: all traces
-warmup = 2_000_000                 # default 1M
-sim    = 10_000_000                # default 5M
+warmup = 2_000_000                 # default 2M
+sim    = 10_000_000                # default 10M
 ```
 
 `--traces`, `--warmup` and `--sim` override these for a single invocation. Test results go to `results/<task>_w<N>_s<N>/`, so they never mix with final results.
 
-Please check that the test window exercises what the task measures. The start of a trace can be unrepresentative: on `400.perlbench`, the baseline had 0 L1D load misses at 1M + 5M but 2842 at 25M + 25M. On the course traces, the default test settings give a baseline L1D load MPKI of 8 to 12.
+Please check that the test window exercises what the task measures. The start of a trace can be unrepresentative: on `400.perlbench`, the baseline had 0 L1D load misses at 1M + 5M but 2842 at 25M + 25M. On the course traces, the 1M + 5M test settings gave a baseline L1D load MPKI of 8 to 12.
 
 ## Experiment files
 
