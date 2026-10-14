@@ -41,6 +41,12 @@ METRICS = {
     "l1d_accuracy_issued": r"L1D USEFUL LOAD PREFETCHES:.*ACCURACY: (\S+)",
     "l1d_pf_useful":       r"L1D PREFETCH +REQUESTED:.*USEFUL: +(\d+)",
     "l1d_pf_useless":      r"L1D PREFETCH +REQUESTED:.*USELESS: +(\d+)",
+    # L2C copies of prefetched lines: hit by a demand / evicted without one.
+    "l2c_pf_useful":       r"L2C PREFETCH +REQUESTED:.*USEFUL: +(\d+)",
+    "l2c_pf_useless":      r"L2C PREFETCH +REQUESTED:.*USELESS: +(\d+)",
+    # Same, from dyn_irrip's own tracking (PREFETCH fills only, no translations).
+    "dyn_pf_used":         r"DYN_IRRIP_PF .* used (\d+)",
+    "dyn_pf_dead":         r"DYN_IRRIP_PF .* dead (\d+)",
     "l2c_load_mpki":       r"L2C LOAD +ACCESS:.*MPKI: (\S+)",
     "l2c_data_load_mpki":  r"L2C DATA LOAD MPKI: (\S+)",
     "l2c_instr_load_mpki": r"L2C INSTRUCTION LOAD MPKI: (\S+)",

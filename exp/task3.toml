@@ -6,9 +6,17 @@
 # Final runs (default) use the spec's settings, which can't be set here:
 #   every trace in ../traces/Trace*.gz, 25M warmup, 25M simulation.
 # The no/lru baseline always runs as config "base".
+#
+# Prefetch knobs in 3dyn_irrip (Task 3 working copy of dyn_irrip) (see task3_notes.md):
+#   PF_HIT  prefetch hit: 0 promote, 1 never promote, 2 don't promote when pf_ctr says dead
+#   PF_INS  prefetch fill: 0 as other data (RRPV 3 in I-RRIP, 2 in RRIP), 1 RRPV 3,
+#           2 follow pf_ctr in both modes: RRPV 3 when dead, 2 when live
+#   PF_TIE  1 = evict unused prefetched lines first among max-RRPV lines
+# TODO: pf = "spp_test1" is a local copy of origin/test1's SPP; switch to "spp" once 1B is in.
 
 metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage", "l1d_load_mpki",
-           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki",
+           "l2c_pf_useful", "l2c_pf_useless", "dyn_pf_used", "dyn_pf_dead"]
 
 # Settings for `--test` runs. Every key is optional; defaults shown.
 [test]
@@ -16,14 +24,44 @@ metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1
 warmup = 1_000_000              # default 1_000_000
 sim    = 5_000_000              # default 5_000_000
 
+# 1. references; spp_dyn's dyn_pf_used/dead answer "are L2C prefetch copies dead?"
 [config.spp]                    # SPP alone
-pf = "spp"
+pf = "spp_test1"
 
-[config.dyn]                    # Dynamic I-RRIP alone
+[config.dyn]                    # Dynamic I-RRIP alone (task 2B file)
 repl = "dyn_irrip"
-# env = { DYN_THRESH = "0.25" } # pin the value chosen in task 2B, if not the code default
 
-[config.spp_dyn]                # the combination
-pf = "spp"
-repl = "dyn_irrip"
-# env = { DYN_THRESH = "0.25" }
+[config.spp_dyn]                # combination, prefetch-unaware
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "0", PF_INS = "0", PF_TIE = "0" }
+
+# 2. no promotion on prefetch hits
+[config.hit]
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "1", PF_INS = "0", PF_TIE = "0" }
+
+# 3. + evict unused prefetched lines first (wins if copies are mostly dead)
+[config.hit_tie]
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "1", PF_INS = "0", PF_TIE = "1" }
+
+# 4. + adaptive insertion (wins if copies are often used: L2-only fills, early prefetches)
+[config.hit_ins]
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "1", PF_INS = "2", PF_TIE = "0" }
+
+# 5. fully adaptive, without and with the tie-break
+[config.adapt]
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "2", PF_INS = "2", PF_TIE = ["0", "1"] }
+
+# control: static RRPV 3 insertion; expected ~ hit, since I-RRIP already inserts data at 3
+[config.ins_static]
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "1", PF_INS = "1", PF_TIE = "0" }
