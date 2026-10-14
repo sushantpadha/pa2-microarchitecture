@@ -10,6 +10,7 @@ tools/exp.py run  exp/task3.toml --only spp_dyn -j 8
 tools/exp.py show exp/task2a.toml --test            # print the table again
 tools/exp.py show exp/task1.toml ipc l1d_load_mpki --sort ipc --plot
 tools/exp.py selftest                               # check the stat regexes
+tools/save.sh irrip task2a                          # save a final results/ dir for the long term, into data/ (--force to replace)
 ```
 
 ## Final and test runs
