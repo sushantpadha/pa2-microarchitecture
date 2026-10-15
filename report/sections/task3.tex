@@ -42,8 +42,6 @@ We ran each change with all follower sets pinned to one mode, to separate it fro
   \item \emph{Prefetch fill at RRPV 3:} no change in I-RRIP mode; in RRIP mode it lowers L2C load MPKI by 0.7\% and instruction load MPKI by 0.7\%. Kept.
   \item \emph{No promotion on prefetch hits:} lowers L2C load MPKI by 0.2\% in I-RRIP mode; with the fill rule, by 0.7\% (instruction 0.8\%) in RRIP mode. Kept.
   \item \emph{Evict unused prefetched lines first} among lines at RRPV 3: about the same MPKI reduction, but it needs a prefetch bit per line. Dropped.
-  \item \emph{Adaptive counter:} % TODO task3_ctr result
-  \item \emph{Bypass of prefetch fills at the L2C:} % TODO task3_evict bypass finding
 \end{itemize}
 Across all combinations the speedup moves by at most 0.05\%: the misses saved are under 1\% of the L2C misses. We kept the two changes that need no storage and lower misses in both modes.
 

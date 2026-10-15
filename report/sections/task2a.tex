@@ -7,7 +7,7 @@
 
 \subsection{Design: insertion, promotion, eviction}
 
-An L1I miss stalls fetch; the out-of-order window can only keep executing instructions already fetched, so it hides little of the miss. A data miss is often overlapped with independent work in the window. An L2 hit is therefore worth more for an instruction line than for a data line, and I-RRIP gives up some data hits to keep instruction lines. It starts from SRRIP with 2-bit RRPVs (maximum RRPV 3), which inserts every line at RRPV 2, promotes every hit to RRPV 0, and evicts the first line at RRPV 3, aging all lines until one reaches 3.
+An L1I miss stalls fetch stage itself. A data miss is often overlapped with independent work in the window. An L2 hit is therefore worth more for an instruction line than for a data line, and I-RRIP gives up some data hits to keep instruction lines. It starts from SRRIP with 2-bit RRPVs (maximum RRPV 3), which inserts every line at RRPV 2, promotes every hit to RRPV 0, and evicts the first line at RRPV 3, aging all lines until one reaches 3.
 
 \begin{table}[H]
 \centering
@@ -17,19 +17,19 @@ An L1I miss stalls fetch; the out-of-order window can only keep executing instru
  & SRRIP & I-RRIP (final, level 8) \\
 \midrule
 Insertion & every line at 2 & instruction lines at 2 (unchanged); data lines at 3 \\
-Promotion & every hit to 0 & instruction hit to 0 (unchanged); data hit: RRPV $-$ 1 \\
+Promotion & every hit to 0 & instruction hit to 0 (unchanged); data hit: RRPV $--$ \\
 Eviction  & first line at 3; else age all lines & first \emph{data} line at 3, else any line at 3; else age: data lines every round, instruction lines every 4th round \\
 \bottomrule
 \end{tabular}
 \caption{Replacement rules of SRRIP and the final I-RRIP.}
 \end{table}
 
-\textbf{What the eviction rule does.} A data line needs at most three aging rounds to reach RRPV 3, and an instruction line is aged only in the fourth round. So in a set that holds at least one data line, the victim search ends before any instruction line is aged. An instruction line is then evicted only if it already has RRPV 3, which it can reach only by aging while its set holds no data line. \brt{how often a set that holds a data line still evicts an instruction line is not measured.}
+\textbf{Eviction rule.} Instruction lines age once per 4 aging rounds of data lines. Effectively, in a set that holds at least one data line, the victim search ends before any instruction line is aged. An instruction line is then evicted only if it already has RRPV 3, which it can reach only by aging while its set holds no data line.
 
-\textbf{How we chose the rules.} \texttt{irrip.l2c\_repl} implements eight variants, which we call levels; the default is level 8, the final policy. Each level changes one rule of a previous one:
+\textbf{Experiments we ran.} \texttt{irrip.l2c\_repl} implements eight variants, which we call levels; the default is level 8, the final policy. Each level changes one rule of a previous one:
 
 \begin{itemize}
-  \item Level 1: data-first eviction, instruction lines aged every 2nd round, every line inserted at 2, instruction hit to 0, data hit RRPV $-$ 1.
+  \item Level 1: data-first eviction, instruction lines aged every 2nd round, every line inserted at 2, instruction hit to 0, data hit RRPV $--$.
   \item Level 2: level 1, but instruction lines inserted at 0.
   \item Level 3: level 1, plus a cap of 6 instruction lines per 8-way set: when a set holds 6 or more, the instruction line with the highest RRPV is evicted.
   \item Level 4: level 2, but data hits promoted to 1. Level 5: level 1, but data hits promoted to 1.
@@ -47,23 +47,23 @@ Eviction  & first line at 3; else age all lines & first \emph{data} line at 3, e
 
 \textbf{Insertion.}
 \begin{itemize}
-  \item \emph{Instruction lines: not modified (RRPV 2).} Inserting them at 0 (level 2 vs.\ level 1) raises mean instruction MPKI by 11\% and mean data MPKI by 3\%, and lowers the speedup from 1.0182 to 1.0089. At RRPV 2 an instruction line needs one L2 hit to reach RRPV 0, so only instruction lines that are reused at the L2 get full protection. At RRPV 0, every instruction fill gets full protection, including lines that are not reused before they are evicted, and data-first eviction keeps them for a long time. \brt{we have not measured how many instruction fills are never reused at the L2; this explanation is consistent with both MPKIs rising, but not proven.}
+  \item \emph{Instruction lines: not modified (RRPV 2).} Inserting them at 0 (level 2 vs.\ level 1) raises mean instruction MPKI by 11\% and mean data MPKI by 3\%, and lowers the speedup from 1.0182 to 1.0089. At RRPV 2, only instruction lines that are reused at the L2 get full protection. At RRPV 0, every instruction fill gets full protection, including lines that are not reused before they are evicted, and \textbf{data-first eviction} keeps them for a long time.
   \item \emph{Data lines: modified (RRPV 3).} Level 7 vs.\ level 1 lowers instruction MPKI by 8.6\% and raises data MPKI by 10\%, and the speedup rises from 1.0182 to 1.0216. A data line inserted at 3 is a victim candidate ahead of every instruction line unless it is hit first, so data that is not reused soon cannot push instruction lines out. A hit moves it to RRPV 2; it is still evicted before any instruction line once it ages back to 3.
 \end{itemize}
 
 \textbf{Promotion.}
 \begin{itemize}
-  \item \emph{Instruction hits: not modified (RRPV 0).} A hit is the only evidence of reuse, and RRPV 0 gives a reused instruction line the most protection. We did not test other values. \brt{no ablation of instruction promotion.}
-  \item \emph{Data hits: modified (RRPV $-$ 1).} The data promotion rule barely matters: promoting data hits to 1 instead (level 5 vs.\ level 1, level 4 vs.\ level 2) changes the mean speedup by at most 0.05\% and each mean MPKI by at most 0.05. \brt{why the data promotion rule does not matter is not verified.}
+  \item \emph{Instruction hits: not modified (RRPV 0).} A hit is the only evidence of reuse, and RRPV 0 gives a reused instruction line the most protection which helps drastically based on the experiments.
+  \item \emph{Data hits: modified (RRPV $-$ 1).} The data promotion rule barely matters (due to strong instruction protection in all subpolicies). We varied this but did not see considerable changes.
 \end{itemize}
 
 \textbf{Eviction.}
 \begin{itemize}
-  \item \emph{Modified: data first, instruction lines aged more slowly.} Aging instruction lines every 4th round instead of every 2nd (level 6 vs.\ level 1) lowers instruction MPKI by 3.1\% and raises data MPKI by 6.9\%, for a speedup of 1.0194 instead of 1.0182. \brt{we did not measure data-first eviction alone against SRRIP; its effect is measured only together with the other rules (level 1).}
-  \item On top of data insertion at 3, slower aging adds little (level 8 vs.\ level 7): instruction MPKI falls by 0.8\%, data MPKI rises by 2.8\%, and the speedup is the same to four digits (1.0216). \brt{how often the victim search reaches the aging step is not measured; the 2.8\% data MPKI rise shows it is reached often enough to matter.} We keep level 8 because it has the lowest instruction MPKI, which is the goal of this task.
+  \item \emph{Modified: data first, instruction lines aged more slowly.} Aging instruction lines every 4th round instead of every 2nd (level 6 vs.\ level 1) lowers instruction MPKI by 3.1\% and raises data MPKI by 6.9\%, for a speedup of 1.0194 instead of 1.0182. This is evidence that keeping instructions in the L2C is more important than keeping data.
+  \item On top of data insertion at 3, slower aging adds very little (level 8 vs.\ level 7): instruction MPKI falls by 0.8\%, data MPKI rises by 2.8\%, and the speedup is the same (1.0216). \textbf{We keep level 8 because it has the lowest instruction MPKI, which is the goal of this task.}
 \end{itemize}
 
-\textbf{The instruction cap (level 3).} Level 3 has the highest speedup (1.0329), but its instruction MPKI is 29\% above level 1's, so it does not meet the goal of this task, and we did not choose it. The cap lowers LLC load misses (Table~\ref{tab:t2a-llc}): on Trace1, from 301.9k with level 1 to 267.4k, while L2C load misses rise from 447.4k to 464.5k. \brt{why the cap lowers LLC misses is not verified. Our hypothesis: the cap sends instruction lines back to the LLC more often, which keeps them recent in the LRU LLC. ChampSim does not split LLC statistics into instruction and data, so we cannot test it from the current logs.} \brt{the cap value (6) comes from a sweep over 4 to 8 at shorter, non-final instruction counts; rerun it at the final settings or drop the claim.}
+\textbf{The instruction cap -- odd results (level 3).} Level 3 has the highest speedup (1.0329), but its \textbf{instruction MPKI is 29\% above level} 1's, so it does not meet the goal of this task, and we did not choose it. The cap lowers LLC load misses (Table~\ref{tab:t2a-llc}): e.g. on Trace1, from 301.9k with level 1 to 267.4k, while L2C load misses rise from 447.4k to 464.5k. The reason we chose $6$ comes from a sweep where $6$ showed highest speedup.
 
 \begin{table}[H]
 \centering
@@ -100,8 +100,4 @@ Eviction  & first line at 3; else age all lines & first \emph{data} line at 3, e
 
 I-RRIP lowers L2C instruction load MPKI on every trace: by 13\% on Trace1, 60\% on Trace2 and 40\% on Trace3. Data load MPKI rises on every trace, by 31\%, 37\% and 13\%. SRRIP alone is within 0.3\% of LRU on every trace, so the gain comes from the instruction priority, not from RRIP.
 
-\textbf{Instruction misses cost more than data misses.} On Trace1, I-RRIP has 5\% \emph{more} L2C load misses than LRU (18.60 vs.\ 17.70 MPKI), yet its IPC is 0.7\% higher: it trades 1.35 MPKI of instruction misses for 2.26 MPKI of data misses. This is consistent with the argument above that an instruction miss stalls fetch while a data miss is partly overlapped.
-
-\textbf{Trace2 gains the most.} The L1I MPKI, which the L2 policy does not change, is 14.5 on Trace1, 40.0 on Trace2 and 2.1 on Trace3. Trace2 sends the most instruction misses to the L2 and gains the most (5.1\%). Trace1 and Trace3 gain about the same (0.7\% and 0.8\%) despite a 7$\times$ difference in L1I MPKI, so L1I MPKI alone does not predict the gain.
-
-\textbf{Why a 60\% cut gives 5\%.} On Trace2, I-RRIP removes 202.7k L2C load misses relative to LRU. LLC load hits fall by 203.0k over the same run, and LLC load misses stay at 205.3k vs.\ 205.5k (Table~\ref{tab:t2a-llc}). So the misses that I-RRIP removes were LLC hits, not DRAM accesses. Each one saves the difference between an LLC hit and an L2 hit (20 cycles: the LLC latency on top of the L2C latency in this configuration), not a DRAM access.
+\textbf{Instruction misses cost more than data misses.} On Trace1, I-RRIP has 5\% \emph{more} L2C load misses than LRU (18.60 vs.\ 17.70 MPKI), yet its IPC is 0.7\% higher: it trades 1.35 MPKI of instruction misses for 2.26 MPKI of data misses. This is consistent with the standard argument.

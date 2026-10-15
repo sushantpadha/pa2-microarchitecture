@@ -113,10 +113,6 @@ static void end_epoch();
 // One prefetch whose outcome counts toward accuracy.
 static void count(bool useful)
 {
-    // Saturate at EPOCH: a timely use can be credited in the epoch after its
-    // fill, so useful can run ahead of issued. Any value >= EPOCH already
-    // means accuracy >= 1, so saturating never changes a decision, and the
-    // counter fits in bits_for(EPOCH) bits.
     if (useful && epoch_useful < EPOCH)
         epoch_useful++;
     if (++epoch_issued == EPOCH)
@@ -226,9 +222,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
     uint32_t cur_line = line & ((1u << LINE_BITS) - 1);
 
     if (w < 0) {
-        // New IP. Allocate only on an L1D miss: the traces have over 100K
-        // distinct load IPs, most of which always hit and never need a
-        // prefetcher; allocating them would evict the IPs that do.
+
         if (cache_hit)
             return;
         // Replace the LRU way; nothing to predict yet.
@@ -254,8 +248,6 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
     e.last_line = cur_line;
 
     if (stride > STRIDE_MAX || stride < -STRIDE_MAX) {
-        // A jump that leaves the page (new array, new object): the history
-        // before it does not predict what comes after it.
         e.last_stride = 0;
         e.conf = 0;
         e.sig = 0;
@@ -374,39 +366,39 @@ void CACHE::l1d_prefetcher_final_stats()
     std::cout << std::endl;
 }
 
-struct Asdf {
-    ~Asdf() {
-        // Storage (bits), from the field widths above.
-        const int ipt_entry = 1 /*valid*/ + (IPT_ID_BITS - IPT_SET_BITS) /*tag*/ + LINE_BITS
-                            + STRIDE_BITS + bits_for(CONF_MAX) + SIG_BITS + bits_for(CHOOSER_MAX)
-                            + bits_for(IPT_WAYS - 1) /*lru*/;
-        const int pt_entry  = STRIDE_BITS + bits_for(CONF_MAX);
-        const int rpf_entry = 1 /*valid*/ + RPF_TAG_BITS + 1 /*filled*/;
-        const int ctrl      = 2 * bits_for(EPOCH) /*issued, useful*/ + bits_for(DMAX) /*degree*/;
-        const int ipt_n     = (int)ipt.size();
-        const int total = ipt_n * ipt_entry + PT_ENTRIES * pt_entry + RPF_ENTRIES * rpf_entry + ctrl;
+// struct Asdf {
+//     ~Asdf() {
+//         // Storage (bits), from the field widths above.
+//         const int ipt_entry = 1 /*valid*/ + (IPT_ID_BITS - IPT_SET_BITS) /*tag*/ + LINE_BITS
+//                             + STRIDE_BITS + bits_for(CONF_MAX) + SIG_BITS + bits_for(CHOOSER_MAX)
+//                             + bits_for(IPT_WAYS - 1) /*lru*/;
+//         const int pt_entry  = STRIDE_BITS + bits_for(CONF_MAX);
+//         const int rpf_entry = 1 /*valid*/ + RPF_TAG_BITS + 1 /*filled*/;
+//         const int ctrl      = 2 * bits_for(EPOCH) /*issued, useful*/ + bits_for(DMAX) /*degree*/;
+//         const int ipt_n     = (int)ipt.size();
+//         const int total = ipt_n * ipt_entry + PT_ENTRIES * pt_entry + RPF_ENTRIES * rpf_entry + ctrl;
 
-        // --- CHANGE HERE: Replace `cpu` with `0` ---
-        std::cout << "CPU " << 0 << " L1D SPP final stats" << std::endl;
-        std::cout << "SPP storage bits: IPT " << ipt_n << "x" << ipt_entry
-                << " PT " << PT_ENTRIES << "x" << pt_entry
-                << " RPF " << RPF_ENTRIES << "x" << rpf_entry
-                << " ctrl " << ctrl << " total " << total << " (" << total / 8.0 << " bytes)" << std::endl;
-        uint64_t fills = st_fill[0] + st_fill[1], late = st_late[0] + st_late[1];
-        uint64_t useful = st_timely[0] + st_timely[1] + late;
-        std::cout << "SPP sent: " << st_sent << " duplicate: " << st_dup << " pq_full: " << st_pq_full
-                << " page_stop: " << st_page_stop << " redundant: " << st_redundant << std::endl;
-        std::cout << "SPP issued: " << fills + late << " useful: " << useful
-                << " accuracy: " << (fills + late ? 100.0 * useful / (fills + late) : 0) << std::endl;
-        const char *name[2] = {"uniform", "pattern"};
-        for (int c = 0; c < 2; c++)
-            std::cout << "SPP " << name[c] << " candidates: " << st_cand[c] << " fills: " << st_fill[c]
-                    << " timely: " << st_timely[c] << " late: " << st_late[c]
-                    << " accuracy: " << (st_fill[c] + st_late[c] ? 100.0 * (st_timely[c] + st_late[c]) / (st_fill[c] + st_late[c]) : 0)
-                    << std::endl;
-        std::cout << "SPP final degree: " << degree << " epochs: " << st_epochs << " degree histogram:";
-        for (uint32_t d = DMIN; d <= DMAX; d++)
-            std::cout << " " << d << ":" << st_degree_epochs[d];
-        std::cout << std::endl;
-    }
-} asdf;
+//         // --- CHANGE HERE: Replace `cpu` with `0` ---
+//         std::cout << "CPU " << 0 << " L1D SPP final stats" << std::endl;
+//         std::cout << "SPP storage bits: IPT " << ipt_n << "x" << ipt_entry
+//                 << " PT " << PT_ENTRIES << "x" << pt_entry
+//                 << " RPF " << RPF_ENTRIES << "x" << rpf_entry
+//                 << " ctrl " << ctrl << " total " << total << " (" << total / 8.0 << " bytes)" << std::endl;
+//         uint64_t fills = st_fill[0] + st_fill[1], late = st_late[0] + st_late[1];
+//         uint64_t useful = st_timely[0] + st_timely[1] + late;
+//         std::cout << "SPP sent: " << st_sent << " duplicate: " << st_dup << " pq_full: " << st_pq_full
+//                 << " page_stop: " << st_page_stop << " redundant: " << st_redundant << std::endl;
+//         std::cout << "SPP issued: " << fills + late << " useful: " << useful
+//                 << " accuracy: " << (fills + late ? 100.0 * useful / (fills + late) : 0) << std::endl;
+//         const char *name[2] = {"uniform", "pattern"};
+//         for (int c = 0; c < 2; c++)
+//             std::cout << "SPP " << name[c] << " candidates: " << st_cand[c] << " fills: " << st_fill[c]
+//                     << " timely: " << st_timely[c] << " late: " << st_late[c]
+//                     << " accuracy: " << (st_fill[c] + st_late[c] ? 100.0 * (st_timely[c] + st_late[c]) / (st_fill[c] + st_late[c]) : 0)
+//                     << std::endl;
+//         std::cout << "SPP final degree: " << degree << " epochs: " << st_epochs << " degree histogram:";
+//         for (uint32_t d = DMIN; d <= DMAX; d++)
+//             std::cout << " " << d << ":" << st_degree_epochs[d];
+//         std::cout << std::endl;
+//     }
+// } asdf;
