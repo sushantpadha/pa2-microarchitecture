@@ -16,17 +16,19 @@ sim    = 5_000_000
 repl = "dyn_irrip2"
 env = { DYN_SIGNAL = "0", DYN_LEADERS = "8" }
 
-[config.duel8]
-repl = "dyn_irrip2"
-env = { DYN_SIGNAL = "1", DYN_LEADERS = "8", DYN_IMISS_W = ["1", "2", "4", "8"] }
+# Dropped to save time (2026-10-15): uncomment to run.
+# [config.duel8]
+# repl = "dyn_irrip2"
+# env = { DYN_SIGNAL = "1", DYN_LEADERS = "8", DYN_IMISS_W = ["1", "2", "4", "8"] }
 
 [config.duel16]
 repl = "dyn_irrip2"
 env = { DYN_SIGNAL = "1", DYN_LEADERS = "16", DYN_IMISS_W = ["1", "2", "4", "8"] }
 
-[config.duel32]
-repl = "dyn_irrip2"
-env = { DYN_SIGNAL = "1", DYN_LEADERS = "32", DYN_IMISS_W = ["1", "2", "4", "8"] }
+# Dropped to save time (2026-10-15): uncomment to run.
+# [config.duel32]
+# repl = "dyn_irrip2"
+# env = { DYN_SIGNAL = "1", DYN_LEADERS = "32", DYN_IMISS_W = ["1", "2", "4", "8"] }
 
 [config.irrip]
 repl = "irrip"
