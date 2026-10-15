@@ -24,4 +24,4 @@ pf = "ip_stride"
 
 [config.ipt]                    # IP table size: sets (log2) x ways
 pf  = "spp"
-env = { SPP_IPT_SET_BITS = ["6", "5", "4"], SPP_IPT_WAYS = ["4", "6", "8"], DISTANCE = ["0", "1", "2", "3", "4"] }
+env = { SPP_IPT_SET_BITS = ["4"], SPP_IPT_WAYS = ["6"], DISTANCE = ["0"], SPP_THI = ["0.6", "0.7", "0.75", "0.8", "0.9"], SPP_TLO = ["0.1", "0.2", "0.3", "0.4", "0.5"] }

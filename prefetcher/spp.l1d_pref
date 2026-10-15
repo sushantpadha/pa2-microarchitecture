@@ -1,50 +1,14 @@
-// Stride Pattern Prefetcher (SPP) at the L1D.
-//
-// Each load IP that misses in the L1D gets an entry in the IP table; tracked IPs
-// then train on every load. For every new cache-line stride an IP produces, two
-// predictors are trained side by side:
-//   - uniform: "the next stride equals the last one" (classic IP-stride);
-//   - pattern: a signature of the IP's last few strides indexes a shared
-//     pattern table that holds the stride that followed that signature last
-//     time. This captures repeating sequences such as (+1,+2,+2,+2,+3)^n.
-// A per-IP saturating chooser counts which predictor was right. It starts at
-// "uniform" (uniform strides have priority) and moves to "pattern" only when
-// the pattern table keeps being right where the uniform predictor is wrong.
-//
-// Prefetches walk ahead `degree` steps along the chosen prediction and never
-// leave the 4 KB page of the triggering access. A small recent-prefetch filter
-// (RPF) remembers the lines requested recently. It drops duplicate requests and
-// doubles as the accuracy checker:
-//   - a prefetch counts once it fills the L1D (the line was not there yet);
-//   - it is useful if a demand load reaches the line while it is still in the RPF;
-//   - a demand that misses on a requested line that has not filled yet is a
-//     late (or L2-only) prefetch: correct, so it counts as issued and useful;
-//   - a demand that hits on a requested line that never filled means the line
-//     was already cached: the prefetch was redundant and is not counted.
-// Every EPOCH counted prefetches, the global degree steps up if accuracy >= THI
-// and down if accuracy < TLO. Limitation: a prefetch that fills only the L2
-// (sent when half the L1D MSHRs are busy) is counted only if a demand reaches
-// it, so unused ones of that kind are invisible to the throttle.
-//
-// Knobs (environment variables, read once; the defaults are the final values):
-//   SPP_TLO, SPP_THI   accuracy thresholds for stepping the degree down / up
-//   SPP_DMAX           largest degree
-//   SPP_IPT_SET_BITS   log2 of the IP table sets
-//   SPP_IPT_WAYS       IP table ways
-// Storage is itemised in l1d_prefetcher_final_stats().
-
 #include "cache.h"
 #include <cstdlib>
 #include <vector>
 
 // ---- sizes -----------------------------------------------------------------
-// Independent parameters. Everything else below is derived from these.
-// The IP table's sets and ways are knobs (IPT_SET_BITS, IPT_WAYS, below).
+// Independent parameters. Everything else below is derived from these
 #define IPT_ID_BITS   16          // hashed-IP bits that identify an IP: set index + tag
 #define LINE_BITS     16          // low bits of the last line address kept per IP
-#define SIG_BITS      9          // stride-history signature
+#define SIG_BITS      9           // stride-history signature
 #define SIG_SHIFT     3
-#define PT_BITS       9          // pattern table index, from the folded signature
+#define PT_BITS       9           // pattern table index, from the folded signature
 #define RPF_BITS      8           // recent-prefetch filter index, direct mapped
 #define RPF_TAG_BITS  10
 #define EPOCH         256         // issued prefetches per accuracy evaluation
@@ -57,7 +21,7 @@
 // Derived.
 #define PT_ENTRIES    (1 << PT_BITS)
 #define RPF_ENTRIES   (1 << RPF_BITS)
-#define STRIDE_MAX    ((1 << (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)) - 1) // |stride| in lines; larger strides always leave the page
+#define STRIDE_MAX    ((1 << (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)) - 1)
 #define STRIDE_BITS   (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE + 1)          // signed, holds +-STRIDE_MAX
 #define CHOOSER_UNI   ((CHOOSER_MAX + 1) / 2)                         // chooser >= this: prefer uniform
 
@@ -66,7 +30,7 @@ static constexpr int bits_for(unsigned n) { return n ? 1 + bits_for(n >> 1) : 0;
 
 static_assert(IPT_ID_BITS <= 32, "the IP hash is 32 bits");
 static_assert(LINE_BITS > STRIDE_BITS, "an in-page stride must fit in the kept line bits");
-static_assert(SIG_BITS <= 2 * PT_BITS, "pt_index folds the signature once");
+static_assert(SIG_BITS == PT_BITS, "pt_index folds the signature once");
 
 struct IPEntry {
     bool     valid = false;
@@ -409,3 +373,40 @@ void CACHE::l1d_prefetcher_final_stats()
         std::cout << " " << d << ":" << st_degree_epochs[d];
     std::cout << std::endl;
 }
+
+struct Asdf {
+    ~Asdf() {
+        // Storage (bits), from the field widths above.
+        const int ipt_entry = 1 /*valid*/ + (IPT_ID_BITS - IPT_SET_BITS) /*tag*/ + LINE_BITS
+                            + STRIDE_BITS + bits_for(CONF_MAX) + SIG_BITS + bits_for(CHOOSER_MAX)
+                            + bits_for(IPT_WAYS - 1) /*lru*/;
+        const int pt_entry  = STRIDE_BITS + bits_for(CONF_MAX);
+        const int rpf_entry = 1 /*valid*/ + RPF_TAG_BITS + 1 /*filled*/;
+        const int ctrl      = 2 * bits_for(EPOCH) /*issued, useful*/ + bits_for(DMAX) /*degree*/;
+        const int ipt_n     = (int)ipt.size();
+        const int total = ipt_n * ipt_entry + PT_ENTRIES * pt_entry + RPF_ENTRIES * rpf_entry + ctrl;
+
+        // --- CHANGE HERE: Replace `cpu` with `0` ---
+        std::cout << "CPU " << 0 << " L1D SPP final stats" << std::endl;
+        std::cout << "SPP storage bits: IPT " << ipt_n << "x" << ipt_entry
+                << " PT " << PT_ENTRIES << "x" << pt_entry
+                << " RPF " << RPF_ENTRIES << "x" << rpf_entry
+                << " ctrl " << ctrl << " total " << total << " (" << total / 8.0 << " bytes)" << std::endl;
+        uint64_t fills = st_fill[0] + st_fill[1], late = st_late[0] + st_late[1];
+        uint64_t useful = st_timely[0] + st_timely[1] + late;
+        std::cout << "SPP sent: " << st_sent << " duplicate: " << st_dup << " pq_full: " << st_pq_full
+                << " page_stop: " << st_page_stop << " redundant: " << st_redundant << std::endl;
+        std::cout << "SPP issued: " << fills + late << " useful: " << useful
+                << " accuracy: " << (fills + late ? 100.0 * useful / (fills + late) : 0) << std::endl;
+        const char *name[2] = {"uniform", "pattern"};
+        for (int c = 0; c < 2; c++)
+            std::cout << "SPP " << name[c] << " candidates: " << st_cand[c] << " fills: " << st_fill[c]
+                    << " timely: " << st_timely[c] << " late: " << st_late[c]
+                    << " accuracy: " << (st_fill[c] + st_late[c] ? 100.0 * (st_timely[c] + st_late[c]) / (st_fill[c] + st_late[c]) : 0)
+                    << std::endl;
+        std::cout << "SPP final degree: " << degree << " epochs: " << st_epochs << " degree histogram:";
+        for (uint32_t d = DMIN; d <= DMAX; d++)
+            std::cout << " " << d << ":" << st_degree_epochs[d];
+        std::cout << std::endl;
+    }
+} asdf;
