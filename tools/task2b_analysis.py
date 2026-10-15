@@ -197,6 +197,33 @@ def rrip_decisions_summary(d, out, trace="Trace3", leaders=(8, 16, 32)):
         print(f"[task2b_analysis] {f.relative_to(DATA.parent)}")
 
 
+def r_over_time(run, out, trace="Trace1", prefix="rlog", threshs=("0.15", "0.25", "0.4")):
+    """r at every decision (DYN_LOG lines) on one trace, one panel per T: every
+    decision is a marker, filled when it chose SRRIP. Shaded: decisions in warmup."""
+    fig, axes = plt.subplots(len(threshs), 1, figsize=(8.4, 1.9 * len(threshs)), sharex=True, sharey=True)
+    for ax, T in zip(axes, threshs):
+        rows = [l.split() for l in (DATA / run / f"{prefix}.DYN_THRESH={T}" / f"{trace}.log").read_text().splitlines()
+                if l.startswith("DYN_LOG ")]
+        roi = np.array([int(r[2]) for r in rows]); r = np.array([float(r[4]) for r in rows])
+        mode = np.array([int(r[6]) for r in rows]); x = np.arange(1, len(r) + 1)
+        if (roi == 0).any():
+            ax.axvspan(0.5, x[roi == 0].max() + 0.5, color="#eeeeee", zorder=0)
+        ax.plot(x, r, "-", color="#999999", linewidth=0.8, zorder=1)
+        ax.scatter(x[mode == 1], r[mode == 1], s=12, facecolors="none", edgecolors=COLORS[0], zorder=2, label="chose I-RRIP")
+        ax.scatter(x[mode == 0], r[mode == 0], s=14, color=COLORS[1], zorder=3, label="chose SRRIP")
+        ax.axhline(float(T), color=COLORS[1], linestyle=":", linewidth=0.9)
+        ax.set_title(f"T = {T}: {int((mode[roi == 1] == 0).sum())} of {int(roi.sum())} decisions after warmup chose SRRIP",
+                     fontsize=8, loc="left")
+        ax.set_ylabel("r")
+        ax.yaxis.grid(True, color="#dddddd", linewidth=0.5)
+    axes[0].legend(fontsize=7, loc="lower right")
+    axes[-1].set_xlabel("Decision (shaded: warmup)")
+    fig.suptitle(f"{trace}: r at every decision (8 leaders, E = 128, h = 0; dotted: T)", y=1.01)
+    fig.savefig(out)
+    plt.close(fig)
+    print(f"[task2b_analysis] {out.relative_to(DATA.parent)}")
+
+
 def main():
     d = load("task2b_sweep")
     out = DATA / "task2b_sweep" / "analysis"
@@ -226,6 +253,11 @@ def main():
                out / "by_hysteresis.png", "Hysteresis h")
     rrip_decisions(d, out)
     rrip_decisions_summary(d, out)
+
+    if (DATA / "task2b_rtrace1").exists():
+        out = DATA / "task2b_rtrace1" / "analysis"
+        out.mkdir(exist_ok=True)
+        r_over_time("task2b_rtrace1", out / "plot1.png")
 
 
 if __name__ == "__main__":

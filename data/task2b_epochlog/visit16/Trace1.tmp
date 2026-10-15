@@ -1,0 +1,53 @@
+# env={'DYN_LOG': '1', 'DYN_HYST': '0', 'DYN_LEADERS': '16', 'DYN_EPOCH': '512', 'DYN_THRESH': '0.15'} cmd=bin/hashed_perceptron-no-no-no-no-no-no-no-lru-lru-lru-dyn_irrip-lru-lru-lru-lru-1core-exp -warmup_instructions 25000000 -simulation_instructions 25000000 -traces ../traces/Trace1.gz
+
+*** ChampSim Multicore Out-of-Order Simulator ***
+
+Warmup Instructions: 25000000
+Simulation Instructions: 25000000
+Number of CPUs: 1
+LLC sets: 2048
+LLC ways: 16
+Off-chip DRAM Size: 4096 MB Channels: 1 Width: 64-bit Data Rate: 6400 MT/s
+CPU 0 runs ../traces/Trace1.gz
+.gz
+BTB has LRU replacement policy
+ITLB has LRU replacement policy
+DTLB has LRU replacement policy
+STLB has LRU replacement policy
+L1I has LRU replacement policy
+L1D has LRU replacement policy
+Initialize Dynamic I-RRIP state for L2C, thresh 0.15, hyst 0, leaders 16, place 0, epoch 512
+LLC has LRU replacement policy
+DYN_LOG instr 1511502 roi 0 r 0.151149 mode 1 f_imiss 3300 f_dmiss 22569 f_instr_lines 3276 f_data_rrpv0 763
+DYN_LOG instr 2662000 roi 0 r 0.337377 mode 1 f_imiss 8350 f_dmiss 17640 f_instr_lines 7151 f_data_rrpv0 46
+DYN_LOG instr 3316364 roi 0 r 0.401148 mode 1 f_imiss 10483 f_dmiss 15646 f_instr_lines 6860 f_data_rrpv0 55
+DYN_LOG instr 5001238 roi 0 r 0.348881 mode 1 f_imiss 5218 f_dmiss 16436 f_instr_lines 6064 f_data_rrpv0 555
+DYN_LOG instr 5806763 roi 0 r 0.417884 mode 1 f_imiss 11640 f_dmiss 16556 f_instr_lines 6842 f_data_rrpv0 37
+DYN_LOG instr 6550913 roi 0 r 0.407321 mode 1 f_imiss 8074 f_dmiss 18211 f_instr_lines 6093 f_data_rrpv0 127
+DYN_LOG instr 8366609 roi 0 r 0.335116 mode 1 f_imiss 4802 f_dmiss 20384 f_instr_lines 6231 f_data_rrpv0 800
+DYN_LOG instr 9644096 roi 0 r 0.371497 mode 1 f_imiss 8023 f_dmiss 16200 f_instr_lines 6963 f_data_rrpv0 42
+Heartbeat CPU 0 instructions: 10000002 cycles: 2957432 heartbeat IPC: 3.38131 cumulative IPC: 3.38131 (Simulation time: 0 hr 1 min 52 sec) 
+DYN_LOG instr 10266448 roi 0 r 0.422342 mode 1 f_imiss 6997 f_dmiss 15239 f_instr_lines 6889 f_data_rrpv0 39
+DYN_LOG instr 11333804 roi 0 r 0.459035 mode 1 f_imiss 10339 f_dmiss 15124 f_instr_lines 7090 f_data_rrpv0 60
+DYN_LOG instr 11869736 roi 0 r 0.496321 mode 1 f_imiss 12084 f_dmiss 13735 f_instr_lines 6940 f_data_rrpv0 86
+DYN_LOG instr 12529811 roi 0 r 0.481628 mode 1 f_imiss 6013 f_dmiss 15029 f_instr_lines 6583 f_data_rrpv0 112
+DYN_LOG instr 13334722 roi 0 r 0.440602 mode 1 f_imiss 7237 f_dmiss 17362 f_instr_lines 6925 f_data_rrpv0 50
+DYN_LOG instr 14168454 roi 0 r 0.454545 mode 1 f_imiss 9292 f_dmiss 16541 f_instr_lines 7067 f_data_rrpv0 52
+DYN_LOG instr 14811165 roi 0 r 0.485794 mode 1 f_imiss 12078 f_dmiss 14524 f_instr_lines 7052 f_data_rrpv0 51
+DYN_LOG instr 16054857 roi 0 r 0.415201 mode 1 f_imiss 6918 f_dmiss 17851 f_instr_lines 6713 f_data_rrpv0 122
+DYN_LOG instr 17187454 roi 0 r 0.458721 mode 1 f_imiss 9563 f_dmiss 14370 f_instr_lines 7060 f_data_rrpv0 38
+DYN_LOG instr 17832009 roi 0 r 0.455824 mode 1 f_imiss 10007 f_dmiss 17190 f_instr_lines 7050 f_data_rrpv0 94
+Heartbeat CPU 0 instructions: 20000001 cycles: 5922219 heartbeat IPC: 3.37292 cumulative IPC: 3.37711 (Simulation time: 0 hr 3 min 44 sec) 
+DYN_LOG instr 22503742 roi 0 r 0.468198 mode 1 f_imiss 5907 f_dmiss 14103 f_instr_lines 6588 f_data_rrpv0 96
+DYN_LOG instr 23148584 roi 0 r 0.467494 mode 1 f_imiss 8902 f_dmiss 13809 f_instr_lines 7240 f_data_rrpv0 33
+DYN_LOG instr 23819238 roi 0 r 0.478002 mode 1 f_imiss 7883 f_dmiss 15655 f_instr_lines 7086 f_data_rrpv0 22
+
+Warmup complete CPU 0 instructions: 25000004 cycles: 7357929 (Simulation time: 0 hr 4 min 35 sec) 
+
+DYN_LOG instr 25541174 roi 1 r 0.485516 mode 1 f_imiss 9390 f_dmiss 15351 f_instr_lines 7119 f_data_rrpv0 75
+DYN_LOG instr 26381423 roi 1 r 0.463206 mode 1 f_imiss 7773 f_dmiss 16660 f_instr_lines 6964 f_data_rrpv0 50
+DYN_LOG instr 27183091 roi 1 r 0.470379 mode 1 f_imiss 7331 f_dmiss 14149 f_instr_lines 7326 f_data_rrpv0 37
+DYN_LOG instr 27871393 roi 1 r 0.480091 mode 1 f_imiss 11615 f_dmiss 14822 f_instr_lines 7032 f_data_rrpv0 68
+DYN_LOG instr 28726158 roi 1 r 0.434343 mode 1 f_imiss 8467 f_dmiss 17107 f_instr_lines 6921 f_data_rrpv0 134
+DYN_LOG instr 29688977 roi 1 r 0.473081 mode 1 f_imiss 9571 f_dmiss 14277 f_instr_lines 7195 f_data_rrpv0 53
+Heartbeat CPU 0 instructions: 30000003 cycles: 31121446 heartbeat IPC: 0.396838 cumulative IPC: 0.210407 (Simulation time: 0 hr 6 min 12 sec) 
