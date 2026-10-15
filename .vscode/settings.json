@@ -24,6 +24,7 @@
         "*.*_repl": "cpp",
         "*.l2c_repl": "cpp",
         "bitset": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "ratio": "cpp"
     }
 }

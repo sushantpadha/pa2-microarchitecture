@@ -1,0 +1,56 @@
+# env={'DYN_LOG': '1', 'DYN_HYST': '0', 'DYN_LEADERS': '16', 'DYN_EPOCH': '512', 'DYN_THRESH': '0.15'} cmd=bin/hashed_perceptron-no-no-no-no-no-no-no-lru-lru-lru-dyn_irrip-lru-lru-lru-lru-1core-exp -warmup_instructions 25000000 -simulation_instructions 25000000 -traces ../traces/Trace2.gz
+
+*** ChampSim Multicore Out-of-Order Simulator ***
+
+Warmup Instructions: 25000000
+Simulation Instructions: 25000000
+Number of CPUs: 1
+LLC sets: 2048
+LLC ways: 16
+Off-chip DRAM Size: 4096 MB Channels: 1 Width: 64-bit Data Rate: 6400 MT/s
+CPU 0 runs ../traces/Trace2.gz
+.gz
+BTB has LRU replacement policy
+ITLB has LRU replacement policy
+DTLB has LRU replacement policy
+STLB has LRU replacement policy
+L1I has LRU replacement policy
+L1D has LRU replacement policy
+Initialize Dynamic I-RRIP state for L2C, thresh 0.15, hyst 0, leaders 16, place 0, epoch 512
+LLC has LRU replacement policy
+DYN_LOG instr 626219 roi 0 r 0.578531 mode 1 f_imiss 11395 f_dmiss 12457 f_instr_lines 6875 f_data_rrpv0 40
+DYN_LOG instr 2355636 roi 0 r 0.434586 mode 1 f_imiss 5578 f_dmiss 15590 f_instr_lines 6648 f_data_rrpv0 41
+DYN_LOG instr 3158697 roi 0 r 0.512723 mode 1 f_imiss 11290 f_dmiss 13598 f_instr_lines 7562 f_data_rrpv0 25
+DYN_LOG instr 3768164 roi 0 r 0.556272 mode 1 f_imiss 14117 f_dmiss 11616 f_instr_lines 7333 f_data_rrpv0 33
+DYN_LOG instr 4160101 roi 0 r 0.591492 mode 1 f_imiss 11503 f_dmiss 10059 f_instr_lines 6984 f_data_rrpv0 83
+DYN_LOG instr 5811481 roi 0 r 0.503023 mode 1 f_imiss 3769 f_dmiss 13387 f_instr_lines 6619 f_data_rrpv0 158
+DYN_LOG instr 6299087 roi 0 r 0.59975 mode 1 f_imiss 10187 f_dmiss 9117 f_instr_lines 7370 f_data_rrpv0 36
+DYN_LOG instr 6750390 roi 0 r 0.656726 mode 1 f_imiss 3009 f_dmiss 8100 f_instr_lines 6658 f_data_rrpv0 224
+DYN_LOG instr 7193583 roi 0 r 0.676671 mode 1 f_imiss 1314 f_dmiss 6572 f_instr_lines 6557 f_data_rrpv0 298
+DYN_LOG instr 7625412 roi 0 r 0.689341 mode 1 f_imiss 1295 f_dmiss 7007 f_instr_lines 6537 f_data_rrpv0 306
+DYN_LOG instr 8064880 roi 0 r 0.683392 mode 1 f_imiss 2118 f_dmiss 7190 f_instr_lines 6787 f_data_rrpv0 188
+DYN_LOG instr 8882397 roi 0 r 0.590369 mode 1 f_imiss 8058 f_dmiss 11129 f_instr_lines 7066 f_data_rrpv0 121
+DYN_LOG instr 9331885 roi 0 r 0.615672 mode 1 f_imiss 11291 f_dmiss 10294 f_instr_lines 7573 f_data_rrpv0 21
+DYN_LOG instr 9764527 roi 0 r 0.650193 mode 1 f_imiss 7034 f_dmiss 8848 f_instr_lines 7243 f_data_rrpv0 50
+Heartbeat CPU 0 instructions: 10000000 cycles: 2975726 heartbeat IPC: 3.36052 cumulative IPC: 3.36052 (Simulation time: 0 hr 1 min 52 sec) 
+DYN_LOG instr 10309106 roi 0 r 0.670387 mode 1 f_imiss 7824 f_dmiss 9329 f_instr_lines 7014 f_data_rrpv0 49
+DYN_LOG instr 11251195 roi 0 r 0.52 mode 1 f_imiss 5532 f_dmiss 17550 f_instr_lines 6111 f_data_rrpv0 80
+DYN_LOG instr 13161984 roi 0 r 0.241143 mode 1 f_imiss 12 f_dmiss 30187 f_instr_lines 5172 f_data_rrpv0 113
+DYN_LOG instr 15065364 roi 0 r 0.116215 mode 0 f_imiss 0 f_dmiss 29265 f_instr_lines 5078 f_data_rrpv0 103
+DYN_LOG instr 16684448 roi 0 r 0.059556 mode 0 f_imiss 342 f_dmiss 27690 f_instr_lines 35 f_data_rrpv0 1219
+DYN_LOG instr 17622644 roi 0 r 0.0284385 mode 0 f_imiss 126 f_dmiss 32107 f_instr_lines 2 f_data_rrpv0 1292
+DYN_LOG instr 18516163 roi 0 r 0.0146984 mode 0 f_imiss 189 f_dmiss 31226 f_instr_lines 33 f_data_rrpv0 1307
+DYN_LOG instr 19844009 roi 0 r 0.0169915 mode 0 f_imiss 755 f_dmiss 30808 f_instr_lines 9 f_data_rrpv0 1162
+Heartbeat CPU 0 instructions: 20000001 cycles: 5831099 heartbeat IPC: 3.50217 cumulative IPC: 3.42989 (Simulation time: 0 hr 3 min 46 sec) 
+DYN_LOG instr 20851788 roi 0 r 0.201435 mode 1 f_imiss 10826 f_dmiss 17299 f_instr_lines 4659 f_data_rrpv0 770
+DYN_LOG instr 21271444 roi 0 r 0.414236 mode 1 f_imiss 2636 f_dmiss 5094 f_instr_lines 5451 f_data_rrpv0 723
+DYN_LOG instr 21696053 roi 0 r 0.542513 mode 1 f_imiss 1350 f_dmiss 5259 f_instr_lines 5530 f_data_rrpv0 681
+DYN_LOG instr 22116575 roi 0 r 0.6033 mode 1 f_imiss 1305 f_dmiss 5329 f_instr_lines 5562 f_data_rrpv0 681
+DYN_LOG instr 22529060 roi 0 r 0.627767 mode 1 f_imiss 1447 f_dmiss 6233 f_instr_lines 5798 f_data_rrpv0 452
+DYN_LOG instr 24983925 roi 0 r 0.346019 mode 1 f_imiss 585 f_dmiss 26436 f_instr_lines 5777 f_data_rrpv0 50
+
+Warmup complete CPU 0 instructions: 25000002 cycles: 7250814 (Simulation time: 0 hr 4 min 43 sec) 
+
+DYN_LOG instr 26943810 roi 1 r 0.176787 mode 1 f_imiss 929 f_dmiss 31270 f_instr_lines 6087 f_data_rrpv0 96
+DYN_LOG instr 28879838 roi 1 r 0.0878415 mode 0 f_imiss 40 f_dmiss 29602 f_instr_lines 5855 f_data_rrpv0 310
+DYN_LOG instr 29493893 roi 1 r 0.313143 mode 1 f_imiss 7847 f_dmiss 8939 f_instr_lines 4983 f_data_rrpv0 1104

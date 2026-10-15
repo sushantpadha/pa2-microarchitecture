@@ -56,6 +56,7 @@ tools/exp.py run  exp/task1.toml             # final: every trace, 25M warmup + 
 - **One run per config and trace is enough.** ChampSim is deterministic (its seed comes from the trace path, see "Traces"), so repeats give identical numbers. The summary across traces is the `avg` row: geometric mean for speedup, arithmetic mean otherwise.
 - **Read the plan `run` prints before waiting on it.** It lists every setting and where it came from, every config with defaults marked, and the builds and runs to do. A wrong trace set or instruction count shows up there.
 - **Check the stats before trusting them.** A metric that looks too good, is NaN, or doesn't move usually means the stat or the code is wrong. Read the raw log in `results/<task>/<config>/` before explaining the number.
+- **Report MPKI as ratios too.** Whenever you report results, give every MPKI metric both as an absolute value and as a ratio to the reference config (`tools/exp.py show ... --ratios <config>`).
 - **Final parameter values must be the code defaults.** The submission tarball has no `exp/` or `tools/`: graders build with `build_champsim.sh` and run the binary, so `getenv()` knobs fall back to their defaults. Once a sweep picks a value, make it the default in the code, so a plain build and run reproduces the reported results.
 - **Keep the tooling small.** Extend `exp.py` (a regex in `METRICS`, a key in the toml) only when a task needs it.
 

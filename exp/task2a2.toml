@@ -1,0 +1,13 @@
+# Task 2A: sweep of the I-RRIP code-way cap (LVL=3), IRRIP_CODE_MAX = max code lines per 8-way set.
+# 8 caps only a set that is all code. Compare L2C vs LLC load misses: does IPC follow the LLC?
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+# Same as task2a.toml, so the numbers compare.
+[test]
+warmup = 2_000_000
+sim    = 10_000_000
+
+[config.cap]
+repl = "irrip"
+env = { LVL = "3", IRRIP_CODE_MAX = ["4", "5", "6", "7", "8"] }  # assumes LVL=3 for code_max logic and L2C_WAYS=8

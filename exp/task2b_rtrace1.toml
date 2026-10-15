@@ -1,0 +1,19 @@
+# Task 2B: r at every decision on Trace1, over many decisions (DYN_LOG=1).
+# 8 leaders, epoch 128 leader accesses (8x more decisions than the final E = 1024),
+# T in {0.15, 0.25, 0.4}, h = 0. Run with:
+#   tools/exp.py run exp/task2b_rtrace1.toml --test
+# The [test] section below is Trace1 only at the final instruction counts.
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+[test]
+traces = ["../traces/Trace1.gz"]
+warmup = 25_000_000
+sim    = 25_000_000
+
+[config.rlog]
+repl = "dyn_irrip"
+env = { DYN_LOG = "1", DYN_HYST = "0", DYN_LEADERS = "8", DYN_EPOCH = "128", DYN_THRESH = ["0.15", "0.25", "0.4"] }
+
+[config.irrip]
+repl = "irrip"

@@ -1,0 +1,41 @@
+# Task 2B pilot: leader set count, at placement 0 (complement select) and T = 0.3.
+# T = 0.3 sits near the Trace1 and Trace3 ratios, so estimate noise can flip decisions.
+# The epoch scales with the leader count (32 leader accesses per leader set per epoch),
+# so every config decides at about the same rate and only the sample size changes.
+# Final settings: every trace, 25M warmup, 25M simulation.
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+[test]
+warmup = 1_000_000
+sim    = 5_000_000
+
+[config.n8]
+repl = "dyn_irrip"
+env = { DYN_THRESH = "0.3", DYN_PLACE = "0", DYN_LEADERS = "8", DYN_EPOCH = "256" }
+
+[config.n16]
+repl = "dyn_irrip"
+env = { DYN_THRESH = "0.3", DYN_PLACE = "0", DYN_LEADERS = "16", DYN_EPOCH = "512" }
+
+[config.n32]
+repl = "dyn_irrip"
+env = { DYN_THRESH = "0.3", DYN_PLACE = "0", DYN_LEADERS = "32", DYN_EPOCH = "1024" }
+
+[config.n64]
+repl = "dyn_irrip"
+env = { DYN_THRESH = "0.3", DYN_PLACE = "0", DYN_LEADERS = "64", DYN_EPOCH = "2048" }
+
+[config.n128]
+repl = "dyn_irrip"
+env = { DYN_THRESH = "0.3", DYN_PLACE = "0", DYN_LEADERS = "128", DYN_EPOCH = "4096" }
+
+[config.n256]
+repl = "dyn_irrip"
+env = { DYN_THRESH = "0.3", DYN_PLACE = "0", DYN_LEADERS = "256", DYN_EPOCH = "8192" }
+
+[config.irrip]
+repl = "irrip"
+
+[config.rrip]
+repl = "rrip"

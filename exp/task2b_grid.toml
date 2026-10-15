@@ -1,0 +1,35 @@
+# Task 2B grid: placement x threshold x leader count, I-RRIP branch = irrip lvl 8.
+# Placement: 0 complement select, 1 low index bits == 0, 2 first sets.
+# T values follow the threshold pilot's steps (0.1 -> 0.15 first change, 0.2-0.35
+# plateau, then 0.4, 0.5, 0.6 before matching rrip at 0.7).
+# Leaders: 8-64 (128+ only lost speedup in the leader pilot). The epoch scales with
+# the leader count (32 leader accesses per leader set), as in the leader pilot.
+# Final settings: every trace, 25M warmup, 25M simulation.
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+[test]
+warmup = 1_000_000
+sim    = 5_000_000
+
+[config.n8]
+repl = "dyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = ["0", "1", "2"], DYN_THRESH = ["0", "0.15", "0.25", "0.4", "0.5", "0.6"] }
+
+[config.n16]
+repl = "dyn_irrip"
+env = { DYN_LEADERS = "16", DYN_EPOCH = "512", DYN_PLACE = ["0", "1", "2"], DYN_THRESH = ["0", "0.15", "0.25", "0.4", "0.5", "0.6"] }
+
+[config.n32]
+repl = "dyn_irrip"
+env = { DYN_LEADERS = "32", DYN_EPOCH = "1024", DYN_PLACE = ["0", "1", "2"], DYN_THRESH = ["0", "0.15", "0.25", "0.4", "0.5", "0.6"] }
+
+[config.n64]
+repl = "dyn_irrip"
+env = { DYN_LEADERS = "64", DYN_EPOCH = "2048", DYN_PLACE = ["0", "1", "2"], DYN_THRESH = ["0", "0.15", "0.25", "0.4", "0.5", "0.6"] }
+
+[config.irrip]
+repl = "irrip"
+
+[config.rrip]
+repl = "rrip"
