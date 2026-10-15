@@ -2,11 +2,123 @@
 \task{2B}{Dynamic I-RRIP}
 
 \subsection{Leader sets and decision logic}
-% TODO
+
+\textbf{Mechanism.} A few L2C sets, the \emph{leaders}, always run SRRIP. In the leaders we count instruction accesses, instruction misses, all accesses and all misses, over demand traffic only (writebacks and prefetches are not counted). The other sets, the \emph{followers}, run I-RRIP (from Task 2A) or SRRIP, as decided from the leaders' counts. Every line records on fill whether it is an instruction line, in every set and in both modes, so a follower that switches mode keeps valid state; both modes use the same 2-bit RRPV scale.
+
+\textbf{Decision.} We use the formula from the problem statement,
+\[
+  r = \frac{\text{instr.\ accesses} + \text{instr.\ misses}}{\text{total accesses} + \text{total misses}},
+\]
+and the followers run I-RRIP when $r > T$, SRRIP otherwise.
+
+\textbf{Epochs.} The decision is made once per \emph{epoch}, every $E$ demand accesses to the leaders. After each decision the four counters are halved. This has the effect of giving greater weight to recent epochs so that counters don't converge to the whole-run average and stop the policy from ever switching. \textbf{We finally use 1024 epochs.}
+
+\textbf{Why the leaders run SRRIP.} If the leaders ran I-RRIP, the ratio we mentioned would be skewed anyway. It would require a more complex interpretation of the threshold (perhaps simple threshold will not even suffice). Reason: I-RRIP removes instruction misses, which lowers $r$ and can switch the followers to SRRIP, which raises instruction misses again. With SRRIP leaders, $r$ measures the workload in an easy to interpret manner so we can set a direct threshold.
+
+\textbf{Leader placement choice.} There are $N$ leaders among the 1024 sets, and rule is: \textbf{set $s$ is a leader when its low $k$ index bits equal the next $k$ bits} (it is called ``complement placement''), where $1024/2^k = N$ (for $N = 32$: \texttt{(s \& 31) == ((s >> 5) \& 31)}). Leaders then sit at different offsets in the index, so an access pattern that maps only to some set offsets cannot dominate the sample. We also compared this placement with two others (low index bits all 0, and the first $N$ sets): the speedups differ by less than 0.1\% for $T \le 0.25$ (Table~\ref{tab:t2b-place}).
+
+\textbf{How many leaders.} Each leader set gives up on some I-RRIP gain, since it always runs SRRIP. With 8 or 16 leaders the policy makes no SRRIP decision after warmup, so their loss against static I-RRIP (0.02\% and 0.04\%, Table~\ref{tab:t2b-leaders}) is the cost of the leader sets alone. More leaders would only help in getting a less noisy estimate for $r$; but in our runs we saw this never occured. More leaders also make each epoch shorter in instructions (an epoch counts leader accesses), so the decision follows shorter dips in $r$ and switches more often, which costs speedup: 32 and 64 leaders switch to SRRIP on Trace2 and Trace3 and lose 0.44\% and 0.52\% (see the sensitivity study below). \textbf{We use 8 leaders finally}.
+
+\textbf{Final parameters} (the code defaults): 8 leaders, complement placement, $E = 1024$ leader accesses, $T = 0.15$, hysteresis $h = 0.05$ (see the extension below).
 
 \subsection{Sensitivity study}
-% TODO
+
+We did ``pilot'' runs over wider ranges (8--256 leaders, epochs of 128--8192, $T$ from 0 to 1) to find some reasonable ranges to do intensive testing: $T$ below 0.15 changes nothing, and from $T = 0.7$ on every trace runs SRRIP throughout. The threshold, leader, epoch and placement sweeps use no hysteresis ($h = 0$); hysteresis is studied seperately later. All results are averages over the three traces; the ratio columns are each MPKI relative to static I-RRIP (geometric mean of the per-trace ratios).
+
+\textbf{Threshold $T$} (8 leaders, $E = 512$):
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t2b_thresh}
+\caption{Threshold sweep. Speedup over LRU (geometric mean); MPKI is the arithmetic mean.}\label{tab:t2b-thresh}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{t2b_thresh.png}
+\caption{Threshold sweep: speedup over LRU, and each MPKI relative to I-RRIP.}
+\end{figure}
+
+\textbf{Speedup falls as $T$ rises}: from 1.0214 at $T = 0$ to 1.0123 at $T = 0.5$. A higher $T$ means more epochs decide to run SRRIP; e.g. at $T = 0.5$, Trace1 runs SRRIP in 10 of its 14 decisions. SRRIP epochs raise instruction MPKI more than they lower data MPKI, and as Task 2A showed, instruction misses cost more. The same holds at every leader count and epoch length we ran.
+
+\textbf{Leader count} ($T = 0.15$, $E = 1024$): Table~\ref{tab:t2b-leaders}, discussed above.
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t2b_leaders}
+\caption{Leader count sweep ($T = 0.15$, $E = 1024$). 8 and 16 leaders make no SRRIP decision after warmup, so their loss against I-RRIP is the cost of the leader sets; 32 and 64 leaders switch to SRRIP on Trace2 and Trace3.}\label{tab:t2b-leaders}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{t2b_leaders.png}
+\caption{Leader count sweep: speedup over LRU, and each MPKI relative to I-RRIP.}
+\end{figure}
+
+\textbf{Epoch length} (32 leaders, $T = 0.15$):
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t2b_epoch}
+\caption{Epoch length sweep, in leader accesses.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{t2b_epoch.png}
+\caption{Epoch length sweep: speedup over LRU, and each MPKI relative to I-RRIP.}
+\end{figure}
+
+Longer epochs are better (1.0166, 1.0171, 1.0208), but only because they decide less often: each decision averages $r$ over more instructions, so short dips no longer reach SRRIP. At $E = 2048$ no trace makes an SRRIP decision after warmup.
+
+\textbf{Placement} (32 leaders, $E = 1024$):
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t2b_place}
+\caption{Speedup over LRU for the three leader placements.}\label{tab:t2b-place}
+\end{table}
+
+\textbf{Why switching does not pay.} The ratio does vary within a trace: with 32 leaders and $E = 1024$, $r$ on Trace2 ranges from 0.07 to 0.70 across epochs. But no configuration we ran beats static I-RRIP on average, and the more decisions choose SRRIP, the lower the speedup. The ratio measures how much of the L2 traffic is instructions, not which policy is better: the epochs where $r$ is low are not epochs where SRRIP wins, since switching to SRRIP in them lowered speedup. A short visit to SRRIP also costs more than its share of the run: on Trace3, 2 SRRIP decisions out of 7 lose 0.61\% (16 leaders, $E = 512$), against 0.84\% for SRRIP over the whole run. The damage outlasts the switch back to I-RRIP. \brt{why it lasts is not measured; candidates: instruction lines evicted during the SRRIP epoch, or data lines left at RRPV 0 by SRRIP's promotion.}
+
+\textbf{Extension: hysteresis.} The problem statement allows extending the formula. With a single threshold, a small dip of $r$ just below $T$ flips the mode, and those switches cost speedup. We added a band of $\pm h$: switch to I-RRIP only when $r > T + h$, and to SRRIP only when $r \le T - h$.
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t2b_hyst}
+\caption{Hysteresis sweep (32 leaders, $E = 1024$, $T = 0.15$).}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{t2b_hyst_decisions.png}
+\caption{Trace3, $T = 0.15$, $E = 512$: speedup relative to I-RRIP against the number of decisions after warmup that chose SRRIP, one panel per $h$, one point per leader count.}
+\end{figure}
+
+Hysteresis raises speedup (1.0171, 1.0200, 1.0208 for $h = 0$, 0.05, 0.1), but only by removing SRRIP decisions: in the figure, speedup returns to I-RRIP's only for the points with no SRRIP decision left, and no point with SRRIP decisions sits above one without. Since every SRRIP decision the ratio makes costs speedup on these traces, hysteresis can at best make the policy never switch. It did not improve on static I-RRIP. We still keep $h = 0.05$ in the final configuration. There it gives results identical to $h = 0$, since the policy makes no SRRIP decision either way. Among the configurations that switch, it raised speedup by 0.2--0.3\% in two (16 leaders at $E = 512$, 32 leaders at $E = 1024$) and changed it by at most 0.03\% in the other three. It guards against noisy switching on workloads whose $r$ stays near $T$.
 
 \subsection{Results}
-% TODO
 
+\begin{table}[H]
+\centering
+\small
+\input{tables/t2b_results}
+\caption{IPC, speedup over LRU, and L2C load MPKI (total, instruction, data) of Dynamic I-RRIP with the final parameters. Mean: geometric for speedup, arithmetic otherwise.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.32\textwidth]{t2b_ipc.png}\hfill
+\includegraphics[width=0.32\textwidth]{t2b_speedup.png}\hfill
+\includegraphics[width=0.32\textwidth]{t2b_mpki.png}\\[0.4em]
+\includegraphics[width=0.32\textwidth]{t2b_mpki_instr.png}\hspace{0.02\textwidth}
+\includegraphics[width=0.32\textwidth]{t2b_mpki_data.png}
+\caption{IPC, speedup over LRU (dashed line), and L2C load MPKI per trace.}
+\end{figure}
+
+Dynamic I-RRIP reaches a speedup of 1.0214 over LRU, against 1.0216 for static I-RRIP, and the same L2C load MPKI (13.91). With the final parameters it makes no SRRIP decision after warmup on any trace: at every decision $r$ is at least 0.46 on Trace1, 0.28 on Trace2 and 0.39 on Trace3, well above $T = 0.15$. So on these traces it behaves as static I-RRIP minus the cost of the 8 leader sets (0.02\%). It decides slowly: with 8 leaders, an epoch of 1024 leader accesses gives 7, 13 and 2 decisions over the 25M simulated instructions of Trace1, Trace2 and Trace3. It switches to SRRIP only when $r$, as kept by the halving counters, is $T - h = 0.10$ or less at a decision, and back to I-RRIP only when $r$ exceeds $T + h = 0.20$.

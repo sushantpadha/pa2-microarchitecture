@@ -6,7 +6,7 @@ Usage: python3 report/task2b.py
     per-trace bar charts of the chosen config like report/plots.py makes for 2A)
 
 Sweeps (each varies one knob; the fixed values are per sweep, see main()):
-- threshold T (8 leaders, epoch 512), leader count (T = 0, epoch 512), epoch
+- threshold T (8 leaders, epoch 512), leader count (T = 0.15, epoch 1024), epoch
   (32 leaders, T = 0.15): from task2b_sweep (placement 0, no hysteresis)
 - hysteresis: from task2b_hyst (32 leaders, epoch 1024, T = 0.15, placement 0)
 - placement: from task2b_grid, the only run with placements 1 and 2 (its epoch is
@@ -15,6 +15,8 @@ The reference config for every MPKI ratio is static I-RRIP ("irrip"), which uses
 the same rules as dyn_irrip's I-RRIP mode. Means over traces: geometric for
 speedup and ratios, arithmetic otherwise (same as tools/exp.py).
 """
+import shutil
+
 import numpy as np
 import pandas as pd
 
@@ -33,9 +35,9 @@ PLACES = {0: "complement select", 1: "low bits = 0", 2: "first sets"}
 HYSTS = ["0", "0.05", "0.1"]
 FIX_T, FIX_N, FIX_E, FIX_P = "0.15", 32, 1024, 0   # epoch, hysteresis and placement sweeps
 # The chosen configuration = dyn_irrip's code defaults: placement 0, 8 leaders,
-# epoch 1024, T = 0.15, no hysteresis. (Checked: a no-env build prints these values
-# and matches the same config set through env exactly.)
-BEST = ("task2b_sweep", "n8.DYN_EPOCH=1024.DYN_THRESH=0.15")
+# epoch 1024, T = 0.15, h = 0.05. (Checked: a no-env build prints these values and
+# matches the same config set through env exactly. Same results as h = 0 in task2b_sweep.)
+BEST = ("task2b_hyst", "n8.DYN_EPOCH=1024.DYN_HYST=0.05")
 
 
 def grid(n, p, t):
@@ -112,7 +114,7 @@ def main():
     sweep_table(s, "t2b_thresh.tex", "$T$")
     sweep_figure(s, "t2b_thresh.png", "Threshold $T$")
 
-    s = summary(sw, STATIC + [(sweep(n, 512, "0"), str(n)) for n in LEADERS])
+    s = summary(sw, STATIC + [(sweep(n, 1024, "0.15"), str(n)) for n in LEADERS])
     sweep_table(s, "t2b_leaders.tex", "Leaders")
     sweep_figure(s, "t2b_leaders.png", "Leader sets")
 
@@ -135,6 +137,10 @@ def main():
     tables.write = write   # per_trace writes through tables.write; keep our header
     tables.per_trace(BEST[0], [("base", "LRU (baseline)"), ("rrip", "SRRIP"), ("irrip", "I-RRIP"),
                                (BEST[1], "Dynamic I-RRIP")], "t2b_results.tex")
+    # hysteresis figure, made by tools/task2b_analysis.py from data/task2b_hyst
+    shutil.copy(DATA / "task2b_hyst" / "analysis" / "rrip_decisions_summary_e512.png", FIG / "t2b_hyst_decisions.png")
+    print("[task2b] t2b_hyst_decisions.png (copied)")
+
     # and the PS-style per-trace bar charts: t2b_{ipc,speedup,mpki,mpki_instr,mpki_data}.png
     plots.l2_figures(BEST[0], [("rrip", "SRRIP"), ("irrip", "I-RRIP"), (BEST[1], "Dynamic I-RRIP")], "t2b")
 
