@@ -4,8 +4,8 @@
 Usage: python3 report/task1.py
     rewrites data/task1/stats.csv from the logs, writes report/figures/t1_*.png
 
-Per-trace plots compare IP-stride and SPP (the code defaults) against the
-no-prefetcher baseline, as in PS.pdf's examples. t1_ipt.png is the IP table
+Per-trace plots compare IP-stride and SPP (the code defaults, IP table 32x4;
+config DEFAULT below) against the no-prefetcher baseline, as in PS.pdf's examples. t1_ipt.png is the IP table
 size sweep. Means over traces: geometric for speedup, arithmetic otherwise
 (same as tools/exp.py). Accuracy is ChampSim's own (useful / issued).
 """
@@ -26,6 +26,10 @@ DATA = REPO / "data" / "task1"
 FIG = REPO / "report" / "figures"
 
 BASE, IPS, SPP = "#8a8985", "#2a78d6", "#eb6834"   # gray baseline, categorical slots 1 and 2
+# SPP's code default IP table (set bits, ways) and the config that ran it. The
+# "spp" config ran the earlier 64x4 default, so it equals ipt 64x4 instead.
+DEFAULT = (5, 4)
+DEFAULT_CFG = "ipt.SPP_IPT_SET_BITS={}.SPP_IPT_WAYS={}".format(*DEFAULT)
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 plt.rcParams.update({
     "font.size": 10, "axes.edgecolor": MUTED, "axes.labelcolor": INK, "xtick.color": MUTED,
@@ -89,7 +93,7 @@ def ipt(df):
     for ax, k, ylabel, fmt in ((axes[0], 2, "Speedup (geomean)", "{:.4f}"),
                                (axes[1], 3, "L1D coverage (%, mean)", "{:.2f}")):
         vals = [r[k] for r in rows]
-        colors = [SPP if (r[0], r[1]) == (6, 4) else IPS for r in rows]
+        colors = [SPP if (r[0], r[1]) == DEFAULT else IPS for r in rows]
         ax.bar(x, vals, 0.6, color=colors)
         lo, hi = min(vals), max(vals)
         pad = (hi - lo) * 0.6 or hi * 0.01
@@ -100,7 +104,7 @@ def ipt(df):
         ax.set_xticks(x, labels, fontsize=8)
         ax.set_xlabel("IP table: sets x ways (entries)")
         ax.set_ylabel(ylabel)
-    axes[0].set_title("Default (64x4) in orange; y axes are zoomed", fontsize=9, color=MUTED, loc="left")
+    axes[0].set_title(f"Default ({1 << DEFAULT[0]}x{DEFAULT[1]}) in orange; y axes are zoomed", fontsize=9, color=MUTED, loc="left")
     fig.tight_layout()
     fig.savefig(FIG / "t1_ipt.png")
     plt.close(fig)
@@ -122,13 +126,13 @@ METRICS = {
 def label(cfg):
     if cfg.startswith("ipt."):
         sb, w = (int(p.split("=")[1]) for p in cfg.split(".")[1:])
-        return f"SPP {1 << sb}x{w}" + (" (default)" if (sb, w) == (6, 4) else "")
+        return f"SPP {1 << sb}x{w}" + (" (default)" if (sb, w) == DEFAULT else "")
     return {"base": "Baseline", "ip_stride": "IP-stride", "spp": "SPP"}[cfg]
 
 
 def all_metrics(df, out):
     """One grouped bar chart per stats.csv metric, every config except spp
-    (identical to the default IPT point)."""
+    (identical to the ipt 64x4 point)."""
     cfgs = ["base", "ip_stride"] + sorted((c for c in df.config.unique() if c.startswith("ipt.")),
                                           key=lambda c: tuple(-int(p.split("=")[1]) for p in c.split(".")[1:]))
     for m, ylabel in METRICS.items():
@@ -151,8 +155,8 @@ SPP_HIST = re.compile(r"degree histogram:((?: \d+:\d+)+)")
 def spp_internals(out):
     """SPP's own stats for the default config: uniform vs pattern prefetches,
     and the share of epochs spent at each degree."""
-    traces = sorted(p.stem for p in (DATA / "spp").glob("*.log"))
-    logs = {t: (DATA / "spp" / f"{t}.log").read_text() for t in traces}
+    traces = sorted(p.stem for p in (DATA / DEFAULT_CFG).glob("*.log"))
+    logs = {t: (DATA / DEFAULT_CFG / f"{t}.log").read_text() for t in traces}
     x = np.arange(len(traces))
     names = [t.replace("Trace", "Trace ") for t in traces]
 
@@ -202,7 +206,7 @@ def main():
     plots.mkdir(exist_ok=True)
     all_metrics(df, plots)
     spp_internals(plots)
-    pfs = [("ip_stride", "IP-stride", IPS), ("spp", "SPP", SPP)]
+    pfs = [("ip_stride", "IP-stride", IPS), (DEFAULT_CFG, "SPP", SPP)]
     bars(df, "speedup", pfs, "Speedup over baseline", "t1_speedup.png", geo=True, baseline=1.0,
          ylim=(0.95, 1.05), fmt="{:.3f}")
     bars(df, "ipc", [("base", "Baseline", BASE)] + pfs, "IPC", "t1_ipc.png", fmt="{:.3f}")
@@ -214,9 +218,9 @@ def main():
 
     cols = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage"]
     print("\nmean over traces (speedup geomean)")
-    for cfg in ["base", "ip_stride", "spp"]:
+    for cfg in ["base", "ip_stride", DEFAULT_CFG]:
         d = df[df.config == cfg]
-        print(f"  {cfg:10s}", "  ".join(f"{c}={mean(d[c], c == 'speedup'):.4f}" for c in cols))
+        print(f"  {label(cfg):18s}", "  ".join(f"{c}={mean(d[c], c == 'speedup'):.4f}" for c in cols))
     print("IPT sweep (sets x ways: speedup, coverage)")
     for sb, w, s, c in rows:
         print(f"  {1 << sb:3d}x{w}: {s:.5f}  {c:.3f}")
