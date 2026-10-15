@@ -21,9 +21,9 @@ double ratio_min = 1, ratio_max = 0, ratio_sum;
 void CACHE::l2c_initialize_replacement()
 {
     const char *s;
-    thresh    = (s = getenv("DYN_THRESH"))  ? atof(s) : 0.25;
+    thresh    = (s = getenv("DYN_THRESH"))  ? atof(s) : 0.15;
     hyst      = (s = getenv("DYN_HYST"))    ? atof(s) : 0;
-    n_leaders = (s = getenv("DYN_LEADERS")) ? atoi(s) : 32;
+    n_leaders = (s = getenv("DYN_LEADERS")) ? atoi(s) : 8;
     epoch     = (s = getenv("DYN_EPOCH"))   ? atoi(s) : 1024;
     place     = (s = getenv("DYN_PLACE"))   ? atoi(s) : 0;
     epoch_left = epoch;
