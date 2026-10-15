@@ -1,9 +1,97 @@
 % !TEX root = ../report.tex
 \task{3}{Incorporating SPP with Dynamic I-RRIP}
 
-\subsection{Handling prefetched lines}
-% TODO
+\subsection{Prefetch-aware Dynamic I-RRIP}
+
+Dynamic I-RRIP (Task 2B) keeps 8 \emph{leader} sets on plain RRIP. Every 256 leader accesses (prefetches and writebacks not counted) it computes the instruction share of their accesses and misses, and runs all other (\emph{follower}) sets as I-RRIP if the share is above 0.15, else as RRIP. Task 3 adds one rule to the follower sets: \textbf{a prefetch never raises a line's priority.}
+\begin{itemize}
+  \item \emph{Prefetch fill:} inserted at RRPV 3, the first to be evicted (a demand fill goes in at RRPV 2 in RRIP mode).
+  \item \emph{Prefetch hit:} no promotion (Task 2B promoted it to RRPV 0 in RRIP mode, by one step in I-RRIP mode).
+\end{itemize}
+Demand and writeback hits promote as before. Leader sets stay plain RRIP, so the mode decision is still made on an unmodified policy. The rule reads only the packet type and needs no storage.
+
+\subsection{Rationale}
+
+\textbf{The L2C copy of a prefetched line is idle.} An SPP prefetch that misses the L1D fills the L2C and the L1D together. While the L1D holds the line, demands hit there, so the L2C copy can only be hit after the L1D evicts it. A prefetch that hits the L2C is filled into the L1D again, so the L2C copy is idle again. (When half the L1D MSHRs are busy, SPP fills only the L2C; these are 1.9--4.5\% of the prefetches that reach the L2C.)
+
+\textbf{Under plain RRIP, prefetched lines are the least reused.} We record for every L2C line what filled it and whether a demand hit it before eviction (Table~\ref{tab:t3-dead}). With every set on RRIP, 3.9--7.6\% of prefetched lines get a demand hit, against 10.1--18.6\% of demand data and 12.9--17.8\% of instruction lines.
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t3_dead}
+\caption{Percentage of evicted L2C lines that got at least one demand hit before eviction, by what filled them, with SPP at the L1D (25M simulated instructions). RRIP, I-RRIP: follower sets pinned to that mode. Rule: the prefetch rule. Leader sets always run RRIP; they evict only 100--300 prefetched lines per trace, so that row's prefetch column is rough. T1--T3: Traces 1--3.}\label{tab:t3-dead}
+\end{table}
+
+\textbf{Deadness measured under I-RRIP is inflated.} I-RRIP inserts every data line at RRPV 3 and evicts data before instructions, so data lines die young and evict each other, while instruction lines stay. Demand data reuse drops from 10.1--18.6\% under RRIP to 2.3--4.7\% under I-RRIP, yet the leader sets of the same I-RRIP runs, which stay on RRIP, still reuse 13.6--17.4\% of their data: the lines are not dead by nature, I-RRIP kills them. Table~\ref{tab:t3-evict} shows the shift: I-RRIP evicts more data lines and up to 2.3$\times$ fewer instruction lines, and instruction reuse rises to 14.7--24.0\%. % TODO evict-in-place numbers (task3_evict)
+Prefetched lines are inflated the same way (2.2--3.3\% reused under I-RRIP). So the case for the rule rests on the RRIP numbers above, not on the I-RRIP ones.
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t3_evict}
+\caption{L2C evictions (thousands, all sets) by what filled the victim, follower sets pinned to RRIP or I-RRIP, SPP on, prefetch rule off.}\label{tab:t3-evict}
+\end{table}
+
+\textbf{Where the rule acts.} In I-RRIP mode a prefetch fill is already a data fill at RRPV 3, so only the hit rule changes anything. In RRIP mode both parts are new. The followers spend 86--100\% of the epochs in I-RRIP mode, so the rule can only have a small effect on the dynamic policy.
+
+\subsection{Design choices}
+
+We ran each change with all follower sets pinned to one mode, to separate it from the mode decision (Table~\ref{tab:t3-modes}).
+\begin{itemize}
+  \item \emph{Prefetch fill at RRPV 3:} no change in I-RRIP mode; in RRIP mode it lowers L2C load MPKI by 0.7\% and instruction load MPKI by 0.7\%. Kept.
+  \item \emph{No promotion on prefetch hits:} lowers L2C load MPKI by 0.2\% in I-RRIP mode; with the fill rule, by 0.7\% (instruction 0.8\%) in RRIP mode. Kept.
+  \item \emph{Evict unused prefetched lines first} among lines at RRPV 3: about the same MPKI reduction, but it needs a prefetch bit per line. Dropped.
+  \item \emph{Adaptive counter:} % TODO task3_ctr result
+  \item \emph{Bypass of prefetch fills at the L2C:} % TODO task3_evict bypass finding
+\end{itemize}
+Across all combinations the speedup moves by at most 0.05\%: the misses saved are under 1\% of the L2C misses. We kept the two changes that need no storage and lower misses in both modes.
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t3_modes}
+\caption{SPP + Dynamic I-RRIP with follower sets pinned to I-RRIP or RRIP mode. 1 = change on. Hit: no promotion on a prefetch hit. Insert: prefetch fill at RRPV 3 (data is inserted at RRPV 3 in I-RRIP mode anyway). Evict: evict an unused prefetched line first among lines at RRPV 3. Speedup: geometric mean over traces; MPKI: arithmetic mean; ratios: geometric mean of per-trace ratios to the first row of each mode. Final policy: Hit = 1, Insert = 1, Evict = 0.}\label{tab:t3-modes}
+\end{table}
 
 \subsection{Results}
-% TODO
 
+\begin{table}[H]
+\centering
+\small
+\input{tables/t3_perf}
+\caption{IPC, speedup over the baseline (no L1D prefetcher, LRU at L2C), and L1D prefetch accuracy and coverage. Accuracy: useful prefetches over prefetches sent to the L2C; coverage: fraction of baseline L1D load misses removed. Aware: the final policy. Unaware: the same policy with the rule off. Mean: geometric for speedup, arithmetic otherwise.}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t3_mpki}
+\caption{Load MPKI of the L1D, the L2C, and the L2C split into instruction and data loads.}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\input{tables/t3_ratios}
+\caption{Mean load MPKI (arithmetic), and each MPKI relative to the baseline (geometric mean of the per-trace ratios).}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.32\textwidth]{t3_ipc.png}\hfill
+\includegraphics[width=0.32\textwidth]{t3_speedup.png}\hfill
+\includegraphics[width=0.32\textwidth]{t3_accuracy.png}\\[0.4em]
+\includegraphics[width=0.32\textwidth]{t3_coverage.png}\hfill
+\includegraphics[width=0.32\textwidth]{t3_l1d.png}\hfill
+\includegraphics[width=0.32\textwidth]{t3_l2c.png}\\[0.4em]
+\includegraphics[width=0.32\textwidth]{t3_l2c_instr.png}\hspace{0.02\textwidth}
+\includegraphics[width=0.32\textwidth]{t3_l2c_data.png}
+\caption{IPC, speedup over the baseline (dashed line), L1D prefetch accuracy and coverage, and load MPKI per trace.}
+\end{figure}
+
+\textbf{SPP + Dynamic I-RRIP beats both on every trace.} Mean speedup 1.0375, against 1.0167 for SPP and 1.0191 for Dynamic I-RRIP. Per trace it gains 1.90\%, 6.11\% and 3.29\%; the best single component gains 0.99\% (SPP), 4.68\% (Dynamic I-RRIP) and 2.52\% (SPP).
+
+\textbf{Why the gains add up.} The two remove different misses. SPP removes L1D data misses (L1D load MPKI 0.88 of the baseline, with or without Dynamic I-RRIP, since the L2C policy does not change what the L1D holds). Dynamic I-RRIP removes L2C instruction misses (0.63 of the baseline alone, 0.60 combined); its extra L2C data misses (1.24 of the baseline alone) are mostly paid back by SPP (1.05 combined). The speedup is close to the product of the two (1.0167 $\times$ 1.0191 = 1.0361).
+
+\textbf{What the rule adds.} Little IPC. Accuracy and coverage are measured at the L1D and do not change (56.4\% and 12.1\%). The mean speedup is 1.0375 with and without the rule; per trace the difference is +0.03\%, +0.05\% and $-$0.08\%. Trace2, with the most L2C instruction misses, gets fewer of them (8.03 to 7.97 MPKI). On Trace3 the rule has 0.3\% more L2C misses, although it lowers Trace3's misses in both pinned modes; both runs make the same 7 mode decisions, and we did not find the cause. The rule is small because the followers are mostly in I-RRIP mode, which already evicts prefetched lines first.

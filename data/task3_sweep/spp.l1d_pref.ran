@@ -1,0 +1,589 @@
+// Stride Pattern Prefetcher (SPP) at L1D.
+//
+// What it does
+// ------------
+// The prefetcher watches the demand loads of each instruction (IP) and learns
+// two kinds of pattern per IP:
+//
+//   1. Uniform stride: the IP keeps moving by the same number of cache lines
+//      (A, A+2, A+4, ...). Learned by a stride and a confidence counter in the
+//      IP's table entry, as in the IP-stride prefetcher.
+//   2. Non-uniform stride: the IP repeats a sequence of strides, for example
+//      (+1, +2, +2, +2, +3)^n. Each IP keeps a signature, a hash of its last few
+//      strides. A shared Pattern Table (PT), indexed by the signature, learns
+//      which stride came after that signature last time. Inside one period of
+//      the sequence every position has a different history, so the signature
+//      tells the PT where in the sequence the IP is.
+//
+// For each IP a 2-bit chooser counter (like a tournament branch predictor)
+// records which of the two predictors was right more often. The uniform
+// predictor is used first; the IP moves to the signature predictor only when
+// the signature predictor keeps being right where the uniform one is wrong.
+// For a constant stride both are right, so the chooser never moves and the
+// uniform path keeps priority.
+//
+// Degree: on each trigger the prefetcher looks D strides ahead. The uniform
+// path issues A+s, A+2s, ... A+Ds. The signature path walks the PT: it predicts
+// the next stride, updates a copy of the signature with it as if the access had
+// happened, predicts again, and so on for D steps.
+//
+// No prefetch leaves the 4 KB page of the triggering access. The L1D sees
+// virtual addresses (the RQ full_addr of a load is its virtual address, and
+// prefetch_line() sends the prefetch through the DTLB), so the check is done
+// on the virtual page. Inside one virtual page the physical page is the same,
+// so the prefetch also stays in the physical page.
+//
+// Accuracy throttling: a small Prefetch Filter remembers the lines this
+// prefetcher recently issued. When a demand load reaches one of them, the
+// prefetch was useful. Every epoch (a fixed number of issued prefetches) the
+// prefetcher computes accuracy = useful / (issued - redundant), where a
+// redundant prefetch is one whose line was already in L1D, and picks the
+// degree from an accuracy-range table:
+//
+//   accuracy   < 25%   25-40%   40-65%   >= 65%
+//   degree       1        2        4        8
+//
+// Why these numbers. The question for each step up is whether the extra
+// prefetches it adds are accurate enough to pay for themselves.
+//  - Break-even: with throttling off (fixed degree 1..16), speedup rose up to
+//    degree 4 and fell after. The prefetches added from 3 to 4 were 11%
+//    accurate (speedup still rose), those added from 4 to 6 were 7% accurate
+//    (speedup fell). So an extra prefetch pays when it is about 10% accurate.
+//    The bar is low because a useless prefetch costs little: it only evicts
+//    an LRU line of a 12-way set, which is rarely reused, plus some L2
+//    bandwidth; a useful one saves a full L1D miss.
+//  - Deeper prefetches are less accurate than the current average. Measured
+//    ratio of (accuracy of the prefetches added by doubling the degree) to
+//    (average accuracy at the current degree): 0.43 at degree 1, 0.27 at 2,
+//    0.15 at 4.
+//  - Doubling pays when ratio x average >= 10%, so the thresholds are
+//    10/0.43 = 23%, 10/0.27 = 37%, 10/0.15 = 65%, rounded to 25, 40, 65.
+//    Other sets in the same range (20-30 / 35-50 / 50-75) were within 0.02%
+//    in mean speedup; higher ones (60,70,80) lost 0.09%.
+// The degrees double per level, so each step doubles the lookahead distance
+// (timeliness). The top degree is 8: from 8 to 12 the added prefetches were
+// 4% accurate, under the break-even, and a top degree of 16 instead of 8
+// changed the mean speedup by only 0.02%.
+//
+// The filter also removes duplicates: a line still in the filter was issued
+// recently, so it is not issued again. On a steady stream this means each
+// trigger only issues the one new line at the far end of the lookahead.
+//
+// Knobs (environment variables, for sweeps; the defaults are the chosen values):
+//   SPP_DEGREES   degree for each accuracy range, low to high   "1,2,4,8"
+//   SPP_THRESH    accuracy boundaries between ranges, in %      "25,40,65"
+//   SPP_EPOCH     issued prefetches per throttling epoch        256
+//   SPP_FIXED     if > 0, use this degree and turn throttling off  0
+//   SPP_UCONF     uniform confidence needed to prefetch         1
+//   SPP_SCONF     PT confidence needed per signature step       1
+//   SPP_IPT_SETS  IP table sets (4 ways each)                   64
+//   SPP_MODE      0 both paths, 1 uniform only, 2 signature only  0
+//   SPP_L2FILL    1: fill only L2 when half the L1D MSHRs are busy  1
+//   SPP_PF_SETS   prefetch filter entries                       512
+
+#include "cache.h"
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <vector>
+
+// ---------------------------------------------------------------------------
+// Table sizes
+// ---------------------------------------------------------------------------
+
+// IP table: SPP_IPT_SETS sets x 4 ways (default 64 x 4 = 256 IPs). The traces
+// touch many load IPs: with 64 entries more than half the loads missed the
+// table. IPT_MAX_SETS only bounds the array for the size sweep.
+#define IPT_MAX_SETS  1024
+#define IPT_WAYS      4
+#define IPT_TAG_BITS  10
+#define LINE_BITS     12   // low bits of the last line address kept per IP
+#define STRIDE_BITS   7    // signed stride in lines, -64..+63
+#define CONF_BITS     2    // all confidence / chooser counters are 2 bits
+#define CONF_MAX      3
+
+// Signature: 8 bits. Each new stride shifts the old signature left by 2 and is
+// XORed in. A stride's bits fully leave the signature after 4 updates, so the
+// signature holds about the last 4 strides. For small strides (|s| <= 3, 2
+// bits) the 4 strides land in separate bit fields and the history is exact.
+#define SIG_BITS      8
+#define SIG_SHIFT     2
+#define SIG_MASK      ((1 << SIG_BITS) - 1)
+
+// Pattern table: one entry per signature value.
+#define PT_ENTRIES    (1 << SIG_BITS)
+
+// Prefetch filter: direct mapped on the low bits of the line address. It must
+// hold a prefetch until its demand arrives, or that prefetch is never counted
+// as useful. With 128 entries, a quarter of the prefetches were overwritten
+// first and the deeper (longer-lived) ones were undercounted, biasing the
+// throttle against high degrees. 512 entries removed most of that bias
+// (measured accuracy then matched ChampSim's within a few %).
+// SPP_PF_SETS entries (power of 2); PF_MAX_SETS only bounds the array.
+#define PF_MAX_SETS   8192
+#define PF_TAG_BITS   10
+
+// A stride bigger than one page can never be prefetched without crossing the
+// page, so all such strides are stored as one value, FAR. FAR is never used to
+// make a prefetch.
+#define STRIDE_MIN    (-(1 << (STRIDE_BITS - 1)))   // -64
+#define STRIDE_FAR    STRIDE_MIN
+
+#define LINES_PER_PAGE_LOG2 (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)   // 6
+
+// ---------------------------------------------------------------------------
+// Tables
+// ---------------------------------------------------------------------------
+
+struct IptEntry {
+    bool     valid;
+    uint16_t tag;        // IPT_TAG_BITS: hash of the IP bits above the set index
+    uint16_t last_line;  // LINE_BITS: low bits of the last line this IP touched
+    int8_t   stride;     // STRIDE_BITS: the uniform stride being trained
+    uint8_t  uconf;      // CONF_BITS: confidence in `stride`
+    uint8_t  sig;        // SIG_BITS: hash of this IP's recent strides
+    uint8_t  chooser;    // CONF_BITS: >= 2 means prefer the signature path
+    uint8_t  lru;        // log2(IPT_WAYS) bits: 0 = most recently used
+};
+
+struct PtEntry {
+    int8_t  stride;      // STRIDE_BITS: stride that followed this signature
+    uint8_t conf;        // CONF_BITS
+};
+
+struct PfEntry {
+    bool     valid;
+    uint16_t tag;        // PF_TAG_BITS
+    bool     filled;     // the prefetch has filled the L1D
+    bool     sig_path;   // issued by the signature path (stats only)
+};
+
+static IptEntry ipt[IPT_MAX_SETS][IPT_WAYS];
+static int IPT_SETS = 64;
+static PtEntry  pt[PT_ENTRIES];
+static PfEntry  pf_filter[PF_MAX_SETS];
+static int PF_SETS = 512, PF_IDX_BITS = 9;
+
+// Throttling state (hardware): counters for the current epoch, current degree.
+static uint32_t epoch_issued = 0;
+static uint32_t epoch_useful = 0;
+static uint32_t epoch_redundant = 0;
+static int      level = 0;       // index into degrees[]
+
+// Knobs
+static std::vector<int> degrees;      // one per accuracy range
+static std::vector<int> thresh;       // size degrees.size() - 1, in %
+static uint32_t knob_epoch = 256;
+static int      knob_fixed = 0;
+static int      knob_uconf = 1;
+static int      knob_sconf = 1;
+static int      knob_mode = 0;    // 0 both paths, 1 uniform only, 2 signature only
+static int      knob_l2fill = 1;  // 1: fill L2 only when half the L1D MSHRs are busy
+
+// ---------------------------------------------------------------------------
+// Statistics (simulation only, ROI only; not part of the hardware)
+// ---------------------------------------------------------------------------
+static uint64_t st_issued[2], st_useful_timely[2], st_useful_late[2];
+static uint64_t st_redundant[2], st_evicted_unused[2], st_filter_overwrite[2];
+static uint64_t st_dup_skipped = 0, st_pq_full = 0, st_page_stop = 0;
+static uint64_t st_page_violation = 0;
+static uint64_t st_trig_uniform = 0, st_trig_sig = 0, st_trig_none = 0;
+static uint64_t st_epochs = 0, st_epoch_acc_sum = 0;
+static uint64_t st_epochs_at_level[16], st_issued_at_level[16];
+static uint64_t st_fill_l2 = 0, st_ipt_miss = 0;
+
+#define ROI (warmup_complete[cpu])
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+static std::vector<int> parse_list(const char *name, const char *def)
+{
+    const char *s = getenv(name);
+    std::string str = s ? s : def;
+    std::vector<int> v;
+    char *p = &str[0];
+    for (char *tok = strtok(p, ","); tok; tok = strtok(NULL, ","))
+        v.push_back(atoi(tok));
+    return v;
+}
+
+static int env_int(const char *name, int def)
+{
+    const char *s = getenv(name);
+    return s ? atoi(s) : def;
+}
+
+static int sat_inc(int c) { return c < CONF_MAX ? c + 1 : c; }
+
+// Next signature after stride s. The stride goes in as its 7-bit two's
+// complement pattern.
+static uint8_t next_sig(uint8_t sig, int s)
+{
+    return ((sig << SIG_SHIFT) ^ (s & ((1 << STRIDE_BITS) - 1))) & SIG_MASK;
+}
+
+// Train a (stride, confidence) pair with hysteresis: a match raises the
+// confidence, a mismatch lowers it, and the stride is replaced only once the
+// confidence has reached 0. A single stray access in a long stream therefore
+// does not throw the stream's stride away.
+static void train(int8_t &stride, uint8_t &conf, int s)
+{
+    if (stride == s)
+        conf = sat_inc(conf);
+    else if (conf > 0)
+        conf--;
+    else
+        stride = s;
+}
+
+static uint32_t pf_index(uint64_t line) { return line & (PF_SETS - 1); }
+static uint16_t pf_tag(uint64_t line) { return (line >> PF_IDX_BITS) & ((1 << PF_TAG_BITS) - 1); }
+
+// ---------------------------------------------------------------------------
+// Issue one prefetch. Returns false if the PQ is full (stop this trigger).
+// ---------------------------------------------------------------------------
+static bool issue(CACHE *c, uint64_t ip, uint64_t addr, uint64_t pf_line, int path)
+{
+    uint32_t cpu = c->cpu;
+
+    // Callers already stop at the page boundary. This check is a guard that
+    // must never fire; st_page_violation should stay 0.
+    if ((pf_line >> LINES_PER_PAGE_LOG2) != (addr >> LOG2_PAGE_SIZE)) {
+        if (ROI) st_page_violation++;
+        return true;
+    }
+
+    PfEntry &f = pf_filter[pf_index(pf_line)];
+    if (f.valid && f.tag == pf_tag(pf_line)) {   // issued recently: skip
+        if (ROI) st_dup_skipped++;
+        return true;
+    }
+
+    // As in IP-stride: if half the L1D MSHRs are busy, bring the line only
+    // into L2, so prefetches do not take the MSHRs that demand misses need.
+    int fill = (!knob_l2fill || c->MSHR.occupancy < (c->MSHR.SIZE >> 1)) ? FILL_L1 : FILL_L2;
+    if (!c->prefetch_line(ip, addr, pf_line << LOG2_BLOCK_SIZE, fill, 0)) {
+        if (ROI) st_pq_full++;
+        return false;
+    }
+
+    if (f.valid && ROI) st_filter_overwrite[f.sig_path]++;   // lost track of an unused prefetch
+    f.valid = true;
+    f.tag = pf_tag(pf_line);
+    f.filled = false;
+    f.sig_path = path;
+
+    epoch_issued++;
+    if (ROI) {
+        st_issued[path]++;
+        st_issued_at_level[level]++;
+        if (fill == FILL_L2) st_fill_l2++;
+    }
+    return true;
+}
+
+// Uniform path: lines A+s, A+2s, ..., A+Ds, stopping at the page boundary.
+static void issue_uniform(CACHE *c, uint64_t ip, uint64_t addr, int stride, int degree)
+{
+    uint32_t cpu = c->cpu;
+    int64_t line = addr >> LOG2_BLOCK_SIZE;
+    for (int k = 1; k <= degree; k++) {
+        int64_t pl = line + (int64_t)k * stride;
+        if ((pl >> LINES_PER_PAGE_LOG2) != (line >> LINES_PER_PAGE_LOG2)) {
+            if (ROI) st_page_stop++;
+            break;
+        }
+        if (!issue(c, ip, addr, pl, 0)) break;
+    }
+}
+
+// Signature path: walk the PT forward from the IP's signature. Returns the
+// number of lines it covered (0 means the PT had no confident prediction).
+static int issue_signature(CACHE *c, uint64_t ip, uint64_t addr, uint8_t sig, int degree)
+{
+    uint32_t cpu = c->cpu;
+    int64_t line = addr >> LOG2_BLOCK_SIZE;
+    int64_t pl = line;
+    int n = 0;
+    for (int k = 1; k <= degree; k++) {
+        const PtEntry &p = pt[sig];
+        if (p.conf < knob_sconf || p.stride == STRIDE_FAR || p.stride == 0)
+            break;
+        pl += p.stride;
+        if ((pl >> LINES_PER_PAGE_LOG2) != (line >> LINES_PER_PAGE_LOG2)) {
+            if (ROI) st_page_stop++;
+            break;
+        }
+        n++;
+        if (!issue(c, ip, addr, pl, 1)) break;
+        sig = next_sig(sig, p.stride);
+    }
+    return n;
+}
+
+// End of an epoch: pick the degree for the measured accuracy.
+static void end_epoch(uint32_t cpu)
+{
+    // Redundant prefetches (the line was already in L1D) are dropped by the
+    // L1D tag check and never fill, so they cannot pollute the cache. They are
+    // left out of the denominator: accuracy = useful / prefetches that missed
+    // L1D. This is the same quantity ChampSim reports as L1D prefetch accuracy
+    // (useful / prefetches issued to the lower level).
+    uint32_t real = epoch_issued > epoch_redundant ? epoch_issued - epoch_redundant : 1;
+    uint32_t acc = 100 * epoch_useful / real;
+    if (acc > 100) acc = 100;   // counts can include prefetches from the last epoch
+
+    if (knob_fixed <= 0) {
+        level = 0;
+        while (level < (int)thresh.size() && (int)acc >= thresh[level])
+            level++;
+    }
+    if (ROI) {
+        st_epochs++;
+        st_epoch_acc_sum += acc;
+        st_epochs_at_level[level]++;
+    }
+    epoch_issued = 0;
+    epoch_useful = 0;
+    epoch_redundant = 0;
+}
+
+static int cur_degree() { return knob_fixed > 0 ? knob_fixed : degrees[level]; }
+
+static void touch_lru(IptEntry *set, int way)
+{
+    for (int w = 0; w < IPT_WAYS; w++)
+        if (set[w].lru < set[way].lru)
+            set[w].lru++;
+    set[way].lru = 0;
+}
+
+// ---------------------------------------------------------------------------
+// ChampSim hooks
+// ---------------------------------------------------------------------------
+
+void CACHE::l1d_prefetcher_initialize()
+{
+    degrees = parse_list("SPP_DEGREES", "1,2,4,8");
+    thresh = parse_list("SPP_THRESH", "25,40,65");
+    knob_epoch = env_int("SPP_EPOCH", 256);
+    knob_fixed = env_int("SPP_FIXED", 0);
+    knob_uconf = env_int("SPP_UCONF", 1);
+    knob_sconf = env_int("SPP_SCONF", 1);
+    IPT_SETS = env_int("SPP_IPT_SETS", 64);
+    knob_mode = env_int("SPP_MODE", 0);
+    knob_l2fill = env_int("SPP_L2FILL", 1);
+    PF_SETS = env_int("SPP_PF_SETS", 512);
+    assert(PF_SETS > 0 && PF_SETS <= PF_MAX_SETS && (PF_SETS & (PF_SETS - 1)) == 0);
+    for (PF_IDX_BITS = 0; (1 << PF_IDX_BITS) < PF_SETS; PF_IDX_BITS++) {}
+    assert(IPT_SETS > 0 && IPT_SETS <= IPT_MAX_SETS && (IPT_SETS & (IPT_SETS - 1)) == 0);
+    assert(!degrees.empty() && degrees.size() <= 16);
+    assert(thresh.size() + 1 == degrees.size());
+    assert(knob_epoch > 0);
+
+    for (int s = 0; s < IPT_SETS; s++)
+        for (int w = 0; w < IPT_WAYS; w++) {
+            ipt[s][w] = IptEntry();
+            ipt[s][w].lru = w;
+        }
+    for (int i = 0; i < PT_ENTRIES; i++) pt[i] = PtEntry();
+    for (int i = 0; i < PF_SETS; i++) pf_filter[i] = PfEntry();
+    level = degrees.size() / 2;   // start in the middle of the table
+
+    cout << "CPU " << cpu << " L1D Stride Pattern Prefetcher (SPP)" << endl;
+    cout << "SPP knobs: SPP_DEGREES=";
+    for (size_t i = 0; i < degrees.size(); i++) cout << (i ? "," : "") << degrees[i];
+    cout << " SPP_THRESH=";
+    for (size_t i = 0; i < thresh.size(); i++) cout << (i ? "," : "") << thresh[i];
+    cout << " SPP_EPOCH=" << knob_epoch << " SPP_FIXED=" << knob_fixed
+         << " SPP_UCONF=" << knob_uconf << " SPP_SCONF=" << knob_sconf << " SPP_IPT_SETS=" << IPT_SETS << " SPP_MODE=" << knob_mode << " SPP_L2FILL=" << knob_l2fill << " SPP_PF_SETS=" << PF_SETS << endl;
+}
+
+void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint8_t critical_ip_flag)
+{
+    if (type != LOAD)
+        return;
+    uint64_t line = addr >> LOG2_BLOCK_SIZE;
+
+    // 1. Accuracy check. If this line is in the filter, our prefetch for it
+    // has now been reached by a demand. Four cases:
+    //   filled, demand hit       -> useful, on time
+    //   not filled, demand miss  -> useful but late (the demand merged with the
+    //                               prefetch still in flight, or the prefetch
+    //                               was sent to L2 only)
+    //   not filled, demand hit   -> redundant: the line was already in L1D, so
+    //                               the prefetch never filled anything
+    //   filled, demand miss      -> useless: evicted before it was used
+    PfEntry &f = pf_filter[pf_index(line)];
+    if (f.valid && f.tag == pf_tag(line)) {
+        int p = f.sig_path;
+        if (f.filled == (cache_hit != 0)) {
+            epoch_useful++;
+            if (ROI) (f.filled ? st_useful_timely : st_useful_late)[p]++;
+        } else {
+            if (!f.filled) epoch_redundant++;
+            if (ROI) (f.filled ? st_evicted_unused : st_redundant)[p]++;
+        }
+        f.valid = false;
+    }
+
+    // 2. Find this IP in the IP table, or allocate the LRU way.
+    IptEntry *set = ipt[ip & (IPT_SETS - 1)];
+    int set_bits = 0;
+    while ((1 << set_bits) < IPT_SETS) set_bits++;
+    uint16_t tag = ((ip >> set_bits) ^ (ip >> (set_bits + IPT_TAG_BITS))) & ((1 << IPT_TAG_BITS) - 1);
+    int way = -1;
+    for (int w = 0; w < IPT_WAYS; w++)
+        if (set[w].valid && set[w].tag == tag)
+            way = w;
+    if (way < 0) {
+        if (ROI) st_ipt_miss++;
+        for (int w = 0; w < IPT_WAYS; w++)
+            if (set[w].lru == IPT_WAYS - 1)
+                way = w;
+        uint8_t lru = set[way].lru;
+        set[way] = IptEntry();
+        set[way].valid = true;
+        set[way].tag = tag;
+        set[way].last_line = line & ((1 << LINE_BITS) - 1);
+        set[way].lru = lru;
+        touch_lru(set, way);
+        return;
+    }
+    IptEntry &e = set[way];
+    touch_lru(set, way);
+
+    // 3. Stride from the last line. Only LINE_BITS of the last line are kept,
+    // so the difference is taken modulo 2^LINE_BITS and sign-extended. Strides
+    // that do not fit in STRIDE_BITS are bigger than a page and become FAR.
+    int d = (int)((line - e.last_line) & ((1 << LINE_BITS) - 1));
+    if (d >= (1 << (LINE_BITS - 1)))
+        d -= (1 << LINE_BITS);
+    if (d == 0)
+        return;   // same line again: nothing new to learn
+    int s = (d > STRIDE_MIN && d < -STRIDE_MIN) ? d : STRIDE_FAR;
+
+    // 4. Training. First score the two predictors on this stride, before
+    // either learns from it.
+    //   uniform predicted e.stride; the signature path predicted pt[e.sig].
+    // The chooser moves toward the signature path only when the signature was
+    // right and the uniform guess was wrong, and back when the reverse holds.
+    PtEntry &pe = pt[e.sig];
+    bool u_right = (e.stride == s);
+    bool s_right = (pe.stride == s);
+    if (s_right && !u_right)
+        e.chooser = sat_inc(e.chooser);
+    else if (u_right && !s_right && e.chooser > 0)
+        e.chooser--;
+
+    train(pe.stride, pe.conf, s);
+    train(e.stride, e.uconf, s);
+    e.sig = next_sig(e.sig, s);
+    e.last_line = line & ((1 << LINE_BITS) - 1);
+
+    // 5. Prefetch with the preferred path. If it has no confident prediction,
+    // try the other one.
+    int degree = cur_degree();
+    bool uniform_ok = e.uconf >= knob_uconf && e.stride != STRIDE_FAR && knob_mode != 2;
+    if (knob_mode == 1) {   // ablation: uniform path only
+        if (uniform_ok) {
+            issue_uniform(this, ip, addr, e.stride, degree);
+            if (ROI) st_trig_uniform++;
+        } else if (ROI) st_trig_none++;
+    } else if (e.chooser < 2 && knob_mode == 0) {
+        if (uniform_ok) {
+            issue_uniform(this, ip, addr, e.stride, degree);
+            if (ROI) st_trig_uniform++;
+        } else if (issue_signature(this, ip, addr, e.sig, degree) > 0) {
+            if (ROI) st_trig_sig++;
+        } else if (ROI) st_trig_none++;
+    } else {
+        if (issue_signature(this, ip, addr, e.sig, degree) > 0) {
+            if (ROI) st_trig_sig++;
+        } else if (uniform_ok) {
+            issue_uniform(this, ip, addr, e.stride, degree);
+            if (ROI) st_trig_uniform++;
+        } else if (ROI) st_trig_none++;
+    }
+
+    // 6. Throttling: at the end of each epoch, set the degree from accuracy.
+    if (epoch_issued >= knob_epoch)
+        end_epoch(cpu);
+}
+
+void CACHE::l1d_prefetcher_cache_fill(uint64_t v_addr, uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t v_evicted_addr, uint64_t evicted_addr, uint32_t metadata_in)
+{
+    // Mark our prefetch as filled. v_addr is the virtual address, the same
+    // space the filter uses.
+    if (!prefetch)
+        return;
+    uint64_t line = v_addr >> LOG2_BLOCK_SIZE;
+    PfEntry &f = pf_filter[pf_index(line)];
+    if (f.valid && f.tag == pf_tag(line))
+        f.filled = true;
+}
+
+void CACHE::l1d_prefetcher_final_stats()
+{
+    // Storage. Every field is listed with its width; the totals are computed
+    // from the same constants the tables use.
+    const int lru_bits = 2;   // log2(IPT_WAYS)
+    const int ipt_entry = 1 + IPT_TAG_BITS + LINE_BITS + STRIDE_BITS + CONF_BITS + SIG_BITS + CONF_BITS + lru_bits;
+    const int pt_entry = STRIDE_BITS + CONF_BITS;
+    const int pf_entry = 1 + PF_TAG_BITS + 1;
+    int cnt_bits = 0;
+    while ((1u << cnt_bits) <= knob_epoch) cnt_bits++;   // counts 0..EPOCH
+    int lvl_bits = 0;
+    while ((1u << lvl_bits) < degrees.size()) lvl_bits++;
+    const int thr_bits = 3 * cnt_bits + lvl_bits;
+    const int ipt_total = IPT_SETS * IPT_WAYS * ipt_entry;
+    const int pt_total = PT_ENTRIES * pt_entry;
+    const int pf_total = PF_SETS * pf_entry;
+    const int total = ipt_total + pt_total + pf_total + thr_bits;
+
+    cout << endl << "CPU " << cpu << " L1D SPP final stats" << endl;
+    cout << "SPP storage:" << endl;
+    cout << "  IP table: " << IPT_SETS << " sets x " << IPT_WAYS << " ways = " << IPT_SETS * IPT_WAYS
+         << " entries x " << ipt_entry << " bits = " << ipt_total << " bits" << endl;
+    cout << "    valid 1 + ip_tag " << IPT_TAG_BITS << " + last_line " << LINE_BITS << " + stride " << STRIDE_BITS
+         << " + uconf " << CONF_BITS << " + signature " << SIG_BITS << " + chooser " << CONF_BITS
+         << " + lru " << lru_bits << endl;
+    cout << "  Pattern table: " << PT_ENTRIES << " entries x " << pt_entry << " bits = " << pt_total << " bits" << endl;
+    cout << "    next_stride " << STRIDE_BITS << " + conf " << CONF_BITS << " (indexed by signature, no tag)" << endl;
+    cout << "  Prefetch filter: " << PF_SETS << " entries x " << pf_entry << " bits = " << pf_total << " bits" << endl;
+    cout << "    valid 1 + line_tag " << PF_TAG_BITS << " + filled 1 (indexed by line bits [" << PF_IDX_BITS - 1 << ":0])" << endl;
+    cout << "    (+1 path bit per entry kept only for the per-path stats below, not counted)" << endl;
+    cout << "  Throttle: epoch_issued " << cnt_bits << " + epoch_useful " << cnt_bits << " + epoch_redundant " << cnt_bits
+         << " + degree_level " << lvl_bits
+         << " = " << thr_bits << " bits" << endl;
+    cout << "  Total: " << total << " bits = " << total / 8.0 << " bytes" << endl;
+
+    const char *name[2] = {"uniform", "signature"};
+    uint64_t iss = st_issued[0] + st_issued[1];
+    uint64_t use = st_useful_timely[0] + st_useful_late[0] + st_useful_timely[1] + st_useful_late[1];
+    uint64_t red = st_redundant[0] + st_redundant[1];
+    cout << "SPP issued " << iss << " useful " << use << " redundant " << red
+         << " accuracy(useful/(issued-redundant)) " << (iss > red ? 100.0 * use / (iss - red) : 0) << "%"
+         << " ip_table_misses " << st_ipt_miss << endl;
+    for (int p = 0; p < 2; p++) {
+        uint64_t u = st_useful_timely[p] + st_useful_late[p];
+        cout << "SPP path " << name[p] << ": issued " << st_issued[p]
+             << " (" << (iss ? 100.0 * st_issued[p] / iss : 0) << "%)"
+             << " useful_timely " << st_useful_timely[p] << " useful_late " << st_useful_late[p]
+             << " redundant " << st_redundant[p] << " evicted_unused " << st_evicted_unused[p]
+             << " filter_overwritten " << st_filter_overwrite[p]
+             << " accuracy " << (st_issued[p] > st_redundant[p] ? 100.0 * u / (st_issued[p] - st_redundant[p]) : 0) << "%" << endl;
+    }
+    cout << "SPP triggers: uniform " << st_trig_uniform << " signature " << st_trig_sig
+         << " none " << st_trig_none << endl;
+    cout << "SPP dup_skipped " << st_dup_skipped << " pq_full " << st_pq_full
+         << " page_stops " << st_page_stop << " page_violations " << st_page_violation
+         << " fill_l2 " << st_fill_l2 << endl;
+    cout << "SPP epochs " << st_epochs << " mean_epoch_accuracy "
+         << (st_epochs ? (double)st_epoch_acc_sum / st_epochs : 0) << "%" << endl;
+    for (size_t i = 0; i < degrees.size(); i++)
+        cout << "SPP degree " << (knob_fixed > 0 ? knob_fixed : degrees[i]) << ": epochs "
+             << st_epochs_at_level[i] << " issued " << st_issued_at_level[i] << endl;
+}

@@ -1,0 +1,34 @@
+# Task 3: who evicts whom at the L2C, with the mode pinned (duel off), team SPP.
+# edyn_irrip = 3dyn_irrip plus stats only (DYN_IRRIP_EVICT_*, DYN_IRRIP_WHO_FOLLOWERS);
+# IPC must match the same configs in data/task3_modes.
+# DYN_THRESH = 0 keeps every follower set in I-RRIP mode; DYN_THRESH = 1 keeps it in RRIP mode.
+# Rule off: PF_INS = 0, PF_HIT = 0. Rule on: PF_INS = 1, PF_HIT = 1.
+# No bypass variant: this ChampSim cannot bypass an L2C fill from the policy
+# (src/cache.cc handles find_victim == way count only for the LLC).
+
+metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_coverage", "l1d_load_mpki",
+           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki", "dyn_pf_used", "dyn_pf_dead"]
+
+[test]
+warmup = 2_000_000
+sim    = 10_000_000
+
+[config.irrip_off]
+pf = "spp"
+repl = "edyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "0", PF_INS = "0", PF_HIT = "0", PF_TIE = "0" }
+
+[config.irrip_on]
+pf = "spp"
+repl = "edyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "0", PF_INS = "1", PF_HIT = "1", PF_TIE = "0" }
+
+[config.rrip_off]
+pf = "spp"
+repl = "edyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "1", PF_INS = "0", PF_HIT = "0", PF_TIE = "0" }
+
+[config.rrip_on]
+pf = "spp"
+repl = "edyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "1", PF_INS = "1", PF_HIT = "1", PF_TIE = "0" }

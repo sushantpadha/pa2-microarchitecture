@@ -13,6 +13,7 @@ LDFlags = -static
 libs =
 libDir =
 
+override MAKEFLAGS += -j$(shell nproc)
 
 #************************ DO NOT EDIT BELOW THIS LINE! ************************
 
