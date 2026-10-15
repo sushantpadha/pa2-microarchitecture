@@ -101,7 +101,7 @@ static uint32_t degree = 4;
 
 static double   TLO = 0.50, THI = 0.75;
 static uint32_t DMAX = 8;
-static uint32_t IPT_SET_BITS = 5, IPT_WAYS = 4; // 32 sets x 4 ways = 128 IPs
+static uint32_t IPT_SET_BITS = 4, IPT_WAYS = 6; // 32 sets x 4 ways = 128 IPs
 static uint32_t DISTANCE = 0;
 
 // Statistics only (not hardware), counted after warmup.
