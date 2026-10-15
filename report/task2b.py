@@ -140,6 +140,9 @@ def main():
     # hysteresis figure, made by tools/task2b_analysis.py from data/task2b_hyst
     shutil.copy(DATA / "task2b_hyst" / "analysis" / "rrip_decisions_summary_e512.png", FIG / "t2b_hyst_decisions.png")
     print("[task2b] t2b_hyst_decisions.png (copied)")
+    # r at every decision on Trace1, made by tools/task2b_analysis.py from data/task2b_rtrace1
+    shutil.copy(DATA / "task2b_rtrace1" / "analysis" / "plot1.png", FIG / "t2b_r_over_time.png")
+    print("[task2b] t2b_r_over_time.png (copied)")
 
     # and the PS-style per-trace bar charts: t2b_{ipc,speedup,mpki,mpki_instr,mpki_data}.png
     plots.l2_figures(BEST[0], [("rrip", "SRRIP"), ("irrip", "I-RRIP"), (BEST[1], "Dynamic I-RRIP")], "t2b")

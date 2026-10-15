@@ -83,7 +83,13 @@ Longer epochs are better, but only because they decide less often: each decision
 \caption{Speedup over LRU for the three leader placements rules. This justifies our choice of ``complement select'' for default.}\label{tab:t2b-place}
 \end{table}
 
-\textbf{Why switching does not help.} The ratio does vary within a trace: e.g. with 32 leaders and $E = 1024$, $r$ on Trace2 ranges from 0.07 to 0.70 across epochs. But no configuration we ran beats static I-RRIP on average, and the more decisions choose SRRIP, the lower the speedup. The ratio measures how much of the L2 traffic is instructions (with misses weighted as twice as much as hits). It turned out that the epochs where $r$ is low are not epochs where SRRIP wins, since switching to SRRIP in them lowered speedup.
+\textbf{Why switching does not help.} The ratio does vary within a trace: e.g. with 32 leaders and $E = 1024$, $r$ on Trace2 ranges from 0.07 to 0.70 across epochs. Figure~\ref{fig:t2b-r} shows $r$ at every decision on Trace1, with a short epoch ($E = 128$, 8 leaders) so the whole run gives about 95 decisions. After warmup $r$ moves between 0.36 and 0.60 in slow waves, not single outliers. With $T = 0.4$ the policy picks SRRIP in 2 of 52 decisions after warmup, at the bottom of two of these dips, and Trace1's speedup over LRU drops from 1.0073 ($T = 0.15$, no SRRIP decision) to 1.0054; static I-RRIP gets 1.0068. So two SRRIP decisions out of 52 cost 0.14--0.19\% of speedup (against static I-RRIP or against $T = 0.15$), while running SRRIP for the whole of Trace1 costs 0.72\%. But no configuration we ran beats static I-RRIP on average, and the more decisions choose SRRIP, the lower the speedup. The ratio measures how much of the L2 traffic is instructions (with misses weighted as twice as much as hits). It turned out that the epochs where $r$ is low are not epochs where SRRIP wins, since switching to SRRIP in them lowered speedup.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{t2b_r_over_time.png}
+\caption{Trace1: $r$ at every decision for $T = 0.15$, 0.25 and 0.4 (8 leaders, $E = 128$, $h = 0$). Hollow markers chose I-RRIP, filled markers chose SRRIP; dotted line: $T$; shaded: decisions made during warmup}\label{fig:t2b-r}
+\end{figure}
 
 \textbf{Extension: hysteresis.} The problem statement allows extending the formula. With a single threshold, a small dip of $r$ just below $T$ flips the mode, and those switches cost speedup. We added a band of $\pm h$: switch to I-RRIP only when $r > T + h$, and to SRRIP only when $r \le T - h$.
 
