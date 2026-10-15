@@ -2,8 +2,8 @@
 """Task 1 figures from data/task1 (final runs, 25M warmup + 25M sim).
 
 Usage: python3 report/task1.py
-    rewrites data/task1/stats.csv from the logs, writes report/figures/t1_*.png,
-    and prints the numbers the report quotes.
+    reads every data/task1/<config>/<trace>.log, writes report/figures/t1_*.png,
+    and prints the numbers the report quotes. It does not touch stats.csv.
 
 "SPP" is the code default: IP table 16 sets x 6 ways, no prefetch distance,
 i.e. the sweep point DEFAULT_CFG. The "spp" config directory is not used: its
@@ -52,10 +52,29 @@ def mean(s, geo):
     return float(np.exp(np.log(s).mean())) if geo else float(s.mean())
 
 
+THIS, TLOS = ("0.6", "0.7", "0.75", "0.8", "0.9"), ("0.1", "0.2", "0.3", "0.4", "0.5")  # threshold sweep
+DEFAULT_T = ("0.75", "0.5")                                                           # code default (THI, TLO)
+
+
+def tcfg(thi, tlo):
+    return f"ipt.SPP_THI={thi}.SPP_TLO={tlo}"
+
+
 def load():
-    configs = exp.load_configs(REPO / "exp" / "task1.toml", None)[1]
-    traces = {p.stem for p in (DATA / "base").glob("*.log")}
-    df = exp.parse(configs, traces, DATA)
+    """Every config directory with complete logs, parsed like tools/exp.py does
+    (same regexes; speedup and coverage against base, same trace)."""
+    import pandas as pd
+    rows = []
+    for d in sorted(p for p in DATA.iterdir() if p.is_dir() and not p.name.startswith("_")):
+        for log in sorted(d.glob("Trace*.log")):
+            text = log.read_text(errors="ignore")
+            if exp.END in text:
+                rows.append({"config": d.name, "trace": log.stem, **exp.parse_log(text)})
+    df = pd.DataFrame(rows)
+    base = df[df.config == "base"].set_index("trace")
+    df["speedup"] = df.ipc / df.trace.map(base.ipc)
+    df["l1d_coverage"] = 100 * (1 - df.l1d_load_miss / df.trace.map(base.l1d_load_miss))
+    df["l1d_pf_late_pct"] = 100 * df.l1d_pf_late / (df.l1d_pf_useful + df.l1d_pf_late).replace(0, np.nan)
     # SPP's storage line, from one log per config (it does not depend on the trace).
     store = {}
     for c in df.config.unique():
@@ -177,6 +196,30 @@ def storage(df, store):
     save(fig, "t1_storage.png")
 
 
+def thresholds(df):
+    """Speedup, accuracy and coverage over the T_high x T_low grid (default IP table, no distance)."""
+    fig, axes = plt.subplots(1, 3, figsize=(11, 3.3))
+    for ax, m, title, fmt in zip(axes, ("speedup", "l1d_accuracy_issued", "l1d_coverage"),
+                                 ("Speedup (geomean)", "Accuracy (%)", "Coverage (%)"), ("{:.4f}", "{:.1f}", "{:.2f}")):
+        g = np.array([[summary(df, tcfg(hi, lo))[m] for lo in TLOS] for hi in THIS])
+        ax.imshow(g, cmap="Blues", aspect="auto")
+        for i in range(len(THIS)):
+            for j in range(len(TLOS)):
+                dark = g[i, j] > g.min() + 0.6 * (g.max() - g.min())
+                star = "*" if (THIS[i], TLOS[j]) == DEFAULT_T else ""
+                ax.text(j, i, fmt.format(g[i, j]) + star, ha="center", va="center", fontsize=7,
+                        color="white" if dark else INK, fontweight="bold" if star else None)
+        ax.set_xticks(range(len(TLOS)), TLOS)
+        ax.set_yticks(range(len(THIS)), THIS)
+        ax.set_xlabel("$T_{low}$ (step down below)")
+        ax.set_ylabel("$T_{high}$ (step up at or above)")
+        ax.set_title(title, fontsize=9)
+        ax.grid(False)
+    fig.suptitle("* = default ($T_{high}$ 0.75, $T_{low}$ 0.5)", fontsize=8, color=MUTED, x=0.99, ha="right")
+    fig.tight_layout()
+    save(fig, "t1_thresh.png")
+
+
 def distance(df):
     """Speedup, coverage and lateness against the prefetch distance; one line per IP table size."""
     fig, axes = plt.subplots(1, 3, figsize=(10, 3.0))
@@ -256,6 +299,7 @@ def main():
     ipt_sweep(df)
     storage(df, store)
     distance(df)
+    thresholds(df)
     inner = internals()
 
     cols = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy_issued", "l1d_coverage", "l1d_pf_late_pct"]
@@ -281,6 +325,12 @@ def main():
     print("speedup falls with every distance step for all sizes:",
           all(summary(df, cfg(sb, w, d))["speedup"] > summary(df, cfg(sb, w, d + 1))["speedup"]
               for sb in SETS for w in WAYS for d in DISTS[:-1]))
+    print("thresholds (THI, TLO: speedup, accuracy, coverage, useless prefetches summed)")
+    for hi in THIS:
+        for lo in TLOS:
+            s = summary(df, tcfg(hi, lo))
+            print(f"  {hi} {lo}: {s['speedup']:.4f} {s['l1d_accuracy_issued']:.1f} {s['l1d_coverage']:.2f}"
+                  f" {df[df.config == tcfg(hi, lo)].l1d_pf_useless.sum():.0f}")
     print("classes (counted, accuracy):", inner["uniform"], inner["pattern"])
     print("degree histogram %:", {t: {d: round(v, 1) for d, v in h.items()} for t, h in inner["hist"].items()})
 

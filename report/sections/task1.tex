@@ -74,10 +74,13 @@ A prefetch that fills only the L2 is counted only if a demand reaches it, so an 
 
 Trace2, where SPP is most accurate, spends the most epochs at the cap of 8. Traces 1 and 3 spend most at degree 4.
 
-\textbf{Why these thresholds:}
-% [TODO] (deliverable, data): justify T_low = 0.50 and T_high = 0.75 from the mechanism (cost of a useless vs gain of a
-% useful prefetch), and back it with a sweep on the current design. SPP_TLO and SPP_THI are env knobs, but no sweep of
-% them on the current code is in data/.
+\textbf{Why these thresholds:} $T_\text{low} = 0.5$ is the break-even point: below it, most prefetches are useless. $T_\text{high} = 0.75$ leaves a gap so the degree does not oscillate. Sweep (default starred):
+
+\begin{center}
+\includegraphics[width=\textwidth]{t1_thresh.png}
+\end{center}
+
+Speedup is flat (1.0149--1.0167); the default is within 0.0002 of the best and, of those, issues the fewest useless prefetches.
 
 \subsection{Results}
 
