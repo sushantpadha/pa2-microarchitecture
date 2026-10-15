@@ -1,0 +1,174 @@
+#include "cache.h"
+#include <cstdlib>
+
+#define maxRRPV 3
+// L2C_WAY == 8, L2C_SET == 1024 in cache.h
+uint32_t l2_rrpv[L2C_SET][L2C_WAY];
+uint8_t l2_instr[L2C_SET][L2C_WAY];  // set on every fill, in every set and mode
+uint8_t l2_leader[L2C_SET];          // leader sets always run RRIP
+
+double thresh, hyst;
+uint32_t n_leaders, epoch, place;
+uint32_t n_ia, n_im, n_ta, n_tm;  // instr accesses, instr misses, total accesses, total misses
+uint32_t epoch_left;
+uint8_t irrip_mode = 1;   // followers start in I-RRIP
+
+// stats
+uint64_t n_epochs, n_irrip_epochs;
+double ratio_min = 1, ratio_max = 0, ratio_sum;
+
+// initialize replacement state
+void CACHE::l2c_initialize_replacement()
+{
+    const char *s;
+    thresh    = (s = getenv("DYN_THRESH"))  ? atof(s) : 0.25;
+    hyst      = (s = getenv("DYN_HYST"))    ? atof(s) : 0;
+    n_leaders = (s = getenv("DYN_LEADERS")) ? atoi(s) : 32;
+    epoch     = (s = getenv("DYN_EPOCH"))   ? atoi(s) : 1024;
+    place     = (s = getenv("DYN_PLACE"))   ? atoi(s) : 0;
+    epoch_left = epoch;
+
+    // Leader placement: fix k index bits; L2C_SET / 2^k leaders
+    // set index: 15-6; block offset: 5-0
+    // can either use top k bits or bottom k or combination
+    
+    // place 0: low k index bits equal the next k bits
+    // place 1: low k index bits are 0 (every set at same offset)
+    // place 2: the first n_leaders sets (one contiguous block)
+    uint32_t k = 0;
+    while ((L2C_SET >> k) > n_leaders)
+        k++;
+    uint32_t m = (1 << k) - 1, count = 0;
+    for (int i=0; i<L2C_SET; i++) {
+        if (place == 1)
+            l2_leader[i] = ((i & m) == 0);
+        else if (place == 2)
+            l2_leader[i] = (i < n_leaders);
+        else
+            l2_leader[i] = ((i & m) == ((i >> k) & m));
+        count += l2_leader[i];
+        for (int j=0; j<L2C_WAY; j++) {
+            l2_rrpv[i][j] = maxRRPV;
+            l2_instr[i][j] = 0;
+        }
+    }
+    cout << "Initialize Dynamic I-RRIP state for L2C, thresh " << thresh << ", hyst " << hyst
+         << ", leaders " << count << ", place " << place << ", epoch " << epoch << endl;
+    assert(count == n_leaders);
+}
+
+// find replacement victim
+uint32_t CACHE::l2c_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const BLOCK *current_set, uint64_t ip, uint64_t full_addr, uint32_t type)
+{
+    uint8_t irrip = !l2_leader[set] && irrip_mode;
+
+    // irrip as copied; otherwise rrip
+    uint32_t round = 0;
+    while (1) {
+        if (irrip)
+            for (int i=0; i<L2C_WAY; i++)
+                if (!l2_instr[set][i] && l2_rrpv[set][i] == maxRRPV)
+                    return i;
+
+        for (int i=0; i<L2C_WAY; i++)
+            if (l2_rrpv[set][i] == maxRRPV)
+                return i;
+
+        for (int i=0; i<L2C_WAY; i++)
+            if (!(irrip && (round%2==0) && l2_instr[set][i]))
+                l2_rrpv[set][i]++;
+
+        round++;
+    }
+
+    // WE SHOULD NOT REACH HERE
+    assert(0);
+    return 0;
+}
+
+// called on every cache hit and cache fill
+void CACHE::l2c_update_replacement_state(uint32_t cpu, uint32_t set, uint32_t way, uint64_t full_addr, uint64_t ip, uint64_t victim_addr, uint32_t type, uint8_t hit, uint8_t isInstruction)
+{
+    string TYPE_NAME;
+    if (type == LOAD)
+        TYPE_NAME = "LOAD";
+    else if (type == RFO)
+        TYPE_NAME = "RFO";
+    else if (type == PREFETCH)
+        TYPE_NAME = "PF";
+    else if (type == WRITEBACK)
+        TYPE_NAME = "WB";
+    else if (type == LOAD_TRANSLATION)
+	TYPE_NAME = "L_TN";
+    else if (type == PREFETCH_TRANSLATION)
+	TYPE_NAME = "P_TN";
+    else if (type == TRANSLATION_FROM_L1D)
+	TYPE_NAME = "TN_L1D";
+    else
+        assert(0);
+
+    if (hit)
+        TYPE_NAME += "_HIT";
+    else
+        TYPE_NAME += "_MISS";
+
+    if ((type == WRITEBACK) && ip)
+        assert(0);
+
+    // uncomment this line to see the L2C accesses
+    // cout << "CPU: " << cpu << "  L2C " << setw(9) << TYPE_NAME << " set: " << setw(5) << set << " way: " << setw(2) << way;
+    // cout << hex << " paddr: " << setw(12) << paddr << " ip: " << setw(8) << ip << " victim_addr: " << victim_addr << dec << endl;
+
+    // count demand (non-WB and non-PF) traffic in leader sets
+    if (l2_leader[set] && type != WRITEBACK && type != PREFETCH) {
+        n_ta++; n_ia += isInstruction;
+        if (!hit) { n_tm++; n_im += isInstruction; }
+        if (--epoch_left == 0) {
+            double num = n_ia + n_im, den = n_ta + n_tm;
+            double ratio = num / den;
+            if (num > (thresh + hyst) * den)
+                irrip_mode = 1;
+            else if (num <= (thresh - hyst) * den)
+                irrip_mode = 0;
+            n_ia /= 2; n_im /= 2; n_ta /= 2; n_tm /= 2;
+            epoch_left = epoch;
+
+            // ! for stats
+            if (warmup_complete[cpu]) {
+                n_epochs++;
+                n_irrip_epochs += irrip_mode;
+                ratio_sum += ratio;
+                ratio_min = min(ratio_min, ratio);
+                ratio_max = max(ratio_max, ratio);
+            }
+        }
+    }
+
+    uint8_t irrip = !l2_leader[set] && irrip_mode;
+
+    if (!hit) {
+        // insert everything at maxRRPV-1 in both modes
+        l2_instr[set][way] = isInstruction;
+        l2_rrpv[set][way] = maxRRPV-1;
+    } else if (isInstruction || !irrip) {
+        // promote instr hits (both modes) and all RRIP hits to 0
+        l2_rrpv[set][way] = 0;
+    } else {
+        // irrip data hit: decrement RRPV instead of setting 0
+        l2_rrpv[set][way] = (l2_rrpv[set][way]==0 ? 0 : l2_rrpv[set][way]-1);
+    }
+}
+
+// use this function to print out your own stats at the end of simulation
+void CACHE::l2c_replacement_final_stats()
+{
+}
+
+// ! guarantees running at the end
+struct DynStats {
+    ~DynStats() {
+        cout << "DYN_IRRIP epochs " << n_epochs << " irrip_frac " << (n_epochs ? (double)n_irrip_epochs / n_epochs : 0)
+             << " ratio_min " << ratio_min << " ratio_mean " << (n_epochs ? ratio_sum / n_epochs : 0)
+             << " ratio_max " << ratio_max << endl;
+    }
+} dyn_stats;

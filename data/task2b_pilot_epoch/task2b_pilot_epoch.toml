@@ -1,0 +1,21 @@
+# Task 2B pilot: epoch length (leader accesses between decisions), at placement 0
+# (complement select), 32 leaders and T = 0.3. At 32 leaders the leaders see about
+# 1k demand accesses per 1M instructions, so 1024 is about one decision per 1M
+# instructions (about 25 per final run).
+# Final settings: every trace, 25M warmup, 25M simulation.
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+[test]
+warmup = 1_000_000
+sim    = 5_000_000
+
+[config.dyn]
+repl = "dyn_irrip"
+env = { DYN_THRESH = "0.3", DYN_PLACE = "0", DYN_LEADERS = "32", DYN_EPOCH = ["128", "256", "512", "1024", "2048", "4096", "8192"] }
+
+[config.irrip]
+repl = "irrip"
+
+[config.rrip]
+repl = "rrip"
