@@ -1,0 +1,26 @@
+# Task 3 pilot, final settings (25M + 25M), with origin/test1's SPP as a stand-in
+# (spp_test1, local copy) until the team's 1B SPP is final.
+# Question: do L2C prefetch copies die unused, and does the combination beat both alone?
+
+metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage", "l1d_load_mpki",
+           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki",
+           "l2c_pf_useful", "l2c_pf_useless", "dyn_pf_used", "dyn_pf_dead"]
+
+[config.spp]                    # SPP alone
+pf = "spp_test1"
+
+[config.dyn]                    # Dynamic I-RRIP alone (task 2B file)
+repl = "dyn_irrip"
+
+[config.spp_dyn]                # combination, prefetch-unaware
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "0", PF_INS = "0", PF_TIE = "0" }
+
+[config.hit]                    # + no promotion on prefetch hits
+pf = "spp_test1"
+repl = "3dyn_irrip"
+env = { PF_HIT = "1", PF_INS = "0", PF_TIE = "0" }
+
+[config.dyn3]                   # 3dyn_irrip without a prefetcher: same policy as dyn, plus the deadness stats
+repl = "3dyn_irrip"

@@ -1,0 +1,18 @@
+# Task 3: the prefetch knobs with the duel switched off, at final settings, with the 1B SPP.
+# DYN_THRESH = 0 keeps every follower set in I-RRIP mode; DYN_THRESH = 1 keeps it in
+# RRIP mode. This separates what each knob does in each mode from the duel's
+# decision timing (on Trace3 the duel makes only 6-7 decisions per run).
+# Other DYN_* as in Task 2B's chosen setting.
+
+metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_coverage", "l1d_load_mpki",
+           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki", "dyn_pf_used", "dyn_pf_dead"]
+
+[config.irrip]                  # I-RRIP mode always: PF_INS changes nothing here (data already at RRPV 3)
+pf = "spp"
+repl = "3dyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "0", PF_INS = "0", PF_HIT = ["0", "1"], PF_TIE = ["0", "1"] }
+
+[config.rrip]                   # RRIP mode always
+pf = "spp"
+repl = "3dyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "1", PF_HIT = ["0", "1"], PF_INS = ["0", "1"], PF_TIE = ["0", "1"] }

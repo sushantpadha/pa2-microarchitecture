@@ -1,0 +1,280 @@
+#include "cache.h"
+#include <cstdlib>
+
+#define maxRRPV 3
+// L2C_WAY == 8, L2C_SET == 1024 in cache.h
+uint32_t l2_rrpv[L2C_SET][L2C_WAY];
+uint8_t l2_instr[L2C_SET][L2C_WAY];  // set on every fill, in every set and mode
+uint8_t l2_leader[L2C_SET];          // leader sets always run RRIP
+
+double thresh, hyst;
+uint32_t n_leaders, epoch, place;
+uint32_t n_ia, n_im, n_ta, n_tm;  // instr accesses, instr misses, total accesses, total misses
+uint32_t epoch_left;
+uint8_t irrip_mode = 1;   // followers start in I-RRIP
+
+// ! task 3 logic
+// l2_pf marks a line filled by a PREFETCH and not yet hit by a demand
+uint8_t l2_pf[L2C_SET][L2C_WAY];
+// pf_ctr: saturating counter of how often prefetched lines die unused,
+// trained only in leader sets (which treat prefetches like demand)
+uint32_t pf_hit_mode, pf_ins_mode, pf_tie, pf_ctr_max;
+uint32_t pf_ctr;
+// knob values: 0 = like demand, 1 = always prefetch-aware, 2 = follow pf_ctr
+
+// stats
+uint64_t n_epochs, n_irrip_epochs;
+double ratio_min = 1, ratio_max = 0, ratio_sum;
+uint64_t pf_fills, pf_hits, pf_used, pf_dead, pf_dead_ins, pf_ldr_used, pf_ldr_dead;
+// Stats only: deadness of every L2C line by what filled it. A line is "used"
+// if a demand (not a prefetch or writeback) hits it at least once before it
+// is evicted, else "dead". Kind 0 = never filled.
+enum { K_NONE, K_PF, K_DATA, K_INSTR, K_WB, K_TRANS, N_KIND };
+const char *kind_name[N_KIND] = {"none", "pf", "data", "instr", "wb", "trans"};
+uint8_t l2_kind[L2C_SET][L2C_WAY], l2_used[L2C_SET][L2C_WAY];
+uint64_t kind_used[N_KIND], kind_dead[N_KIND];
+uint64_t ldr_kind_used[N_KIND], ldr_kind_dead[N_KIND];  // leader sets only (plain RRIP)
+
+// initialize replacement state
+void CACHE::l2c_initialize_replacement()
+{
+    const char *s;
+    thresh    = (s = getenv("DYN_THRESH"))  ? atof(s) : 0.25;
+    hyst      = (s = getenv("DYN_HYST"))    ? atof(s) : 0;
+    n_leaders = (s = getenv("DYN_LEADERS")) ? atoi(s) : 32;
+    epoch     = (s = getenv("DYN_EPOCH"))   ? atoi(s) : 1024;
+    place     = (s = getenv("DYN_PLACE"))   ? atoi(s) : 0;
+    pf_hit_mode = (s = getenv("PF_HIT"))    ? atoi(s) : 0;  // prefetch hit: 0 promote, 1 never, 2 not when dead
+    pf_ins_mode = (s = getenv("PF_INS"))    ? atoi(s) : 0;  // prefetch fill: 0 as data, 1 RRPV 3, 2 RRPV 3 when dead else 2
+    pf_tie      = (s = getenv("PF_TIE"))    ? atoi(s) : 0;  // victim: unused prefetched lines first
+    pf_ctr_max  = (s = getenv("PF_CTR_MAX")) ? atoi(s) : 7; // 3-bit counter
+    epoch_left = epoch;
+
+    // Leader placement: fix k index bits; L2C_SET / 2^k leaders
+    // set index: 15-6; block offset: 5-0
+    // can either use top k bits or bottom k or combination
+    
+    // place 0: low k index bits equal the next k bits
+    // place 1: low k index bits are 0 (every set at same offset)
+    // place 2: the first n_leaders sets (one contiguous block)
+    uint32_t k = 0;
+    while ((L2C_SET >> k) > n_leaders)
+        k++;
+    uint32_t m = (1 << k) - 1, count = 0;
+    for (int i=0; i<L2C_SET; i++) {
+        if (place == 1)
+            l2_leader[i] = ((i & m) == 0);
+        else if (place == 2)
+            l2_leader[i] = (i < n_leaders);
+        else
+            l2_leader[i] = ((i & m) == ((i >> k) & m));
+        count += l2_leader[i];
+        for (int j=0; j<L2C_WAY; j++) {
+            l2_rrpv[i][j] = maxRRPV;
+            l2_instr[i][j] = 0;
+            l2_pf[i][j] = 0;
+            l2_kind[i][j] = K_NONE;
+            l2_used[i][j] = 0;
+        }
+    }
+    cout << "Initialize Dynamic I-RRIP state for L2C, thresh " << thresh << ", hyst " << hyst
+         << ", leaders " << count << ", place " << place << ", epoch " << epoch
+         << ", pf_hit " << pf_hit_mode << ", pf_ins " << pf_ins_mode << ", pf_tie " << pf_tie
+         << ", pf_ctr_max " << pf_ctr_max << endl;
+    assert(count == n_leaders);
+}
+
+// find replacement victim
+uint32_t CACHE::l2c_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const BLOCK *current_set, uint64_t ip, uint64_t full_addr, uint32_t type)
+{
+    uint8_t irrip = !l2_leader[set] && irrip_mode;
+
+    // irrip + rrip
+    uint32_t round = 0;
+    while (1) {
+        // PF_TIE: among lines at max RRPV, evict an unused prefetched line first
+        if (pf_tie && !l2_leader[set])
+            for (int i=0; i<L2C_WAY; i++)
+                if (l2_pf[set][i] && l2_rrpv[set][i] == maxRRPV)
+                    return i;
+
+        // irrip: evict data before instruction
+        if (irrip)
+            for (int i=0; i<L2C_WAY; i++)
+                if (!l2_instr[set][i] && l2_rrpv[set][i] == maxRRPV)
+                    return i;
+
+        for (int i=0; i<L2C_WAY; i++)
+            if (l2_rrpv[set][i] == maxRRPV)
+                return i;
+
+        // irrip: age instruction lines once every 4 rounds 
+        for (int i=0; i<L2C_WAY; i++)
+            if (!(irrip && (round%4 != 3) && l2_instr[set][i]))
+                l2_rrpv[set][i]++;
+
+        round++;
+    }
+
+    // WE SHOULD NOT REACH HERE
+    assert(0);
+    return 0;
+}
+
+// called on every cache hit and cache fill
+void CACHE::l2c_update_replacement_state(uint32_t cpu, uint32_t set, uint32_t way, uint64_t full_addr, uint64_t ip, uint64_t victim_addr, uint32_t type, uint8_t hit, uint8_t isInstruction)
+{
+    string TYPE_NAME;
+    if (type == LOAD)
+        TYPE_NAME = "LOAD";
+    else if (type == RFO)
+        TYPE_NAME = "RFO";
+    else if (type == PREFETCH)
+        TYPE_NAME = "PF";
+    else if (type == WRITEBACK)
+        TYPE_NAME = "WB";
+    else if (type == LOAD_TRANSLATION)
+	TYPE_NAME = "L_TN";
+    else if (type == PREFETCH_TRANSLATION)
+	TYPE_NAME = "P_TN";
+    else if (type == TRANSLATION_FROM_L1D)
+	TYPE_NAME = "TN_L1D";
+    else
+        assert(0);
+
+    if (hit)
+        TYPE_NAME += "_HIT";
+    else
+        TYPE_NAME += "_MISS";
+
+    if ((type == WRITEBACK) && ip)
+        assert(0);
+
+    // uncomment this line to see the L2C accesses
+    // cout << "CPU: " << cpu << "  L2C " << setw(9) << TYPE_NAME << " set: " << setw(5) << set << " way: " << setw(2) << way;
+    // cout << hex << " paddr: " << setw(12) << paddr << " ip: " << setw(8) << ip << " victim_addr: " << victim_addr << dec << endl;
+
+    // count demand (non-WB and non-PF) traffic in leader sets
+    if (l2_leader[set] && type != WRITEBACK && type != PREFETCH) {
+        n_ta++; n_ia += isInstruction;
+        if (!hit) { n_tm++; n_im += isInstruction; }
+        if (--epoch_left == 0) {
+            double num = n_ia + n_im, den = n_ta + n_tm;
+            double ratio = num / den;
+            if (num > (thresh + hyst) * den)
+                irrip_mode = 1;
+            else if (num <= (thresh - hyst) * den)
+                irrip_mode = 0;
+            n_ia /= 2; n_im /= 2; n_ta /= 2; n_tm /= 2;
+            epoch_left = epoch;
+
+            // ! for stats
+            if (warmup_complete[cpu]) {
+                n_epochs++;
+                n_irrip_epochs += irrip_mode;
+                ratio_sum += ratio;
+                ratio_min = min(ratio_min, ratio);
+                ratio_max = max(ratio_max, ratio);
+            }
+        }
+    }
+
+    uint8_t irrip = !l2_leader[set] && irrip_mode;
+    uint8_t roi = warmup_complete[cpu];
+
+    // Stats only: per-kind deadness, counted when the line is evicted.
+    if (!hit) {
+        uint8_t k = l2_kind[set][way];
+        if (k != K_NONE && roi) {
+            (l2_used[set][way] ? kind_used : kind_dead)[k]++;
+            if (l2_leader[set])
+                (l2_used[set][way] ? ldr_kind_used : ldr_kind_dead)[k]++;
+        }
+        l2_kind[set][way] = type == PREFETCH ? K_PF
+                          : type == WRITEBACK ? K_WB
+                          : (type == LOAD || type == RFO) ? (isInstruction ? K_INSTR : K_DATA)
+                          : K_TRANS;
+        l2_used[set][way] = 0;
+    } else if (type != PREFETCH && type != WRITEBACK)
+        l2_used[set][way] = 1;
+
+    // Track prefetched lines in every set; train pf_ctr in leader sets only.
+    if (!hit && l2_pf[set][way]) {
+        // the victim was prefetched and never hit by a demand: dead
+        pf_dead += roi;
+        if (l2_leader[set]) {
+            pf_ldr_dead += roi;
+            if (pf_ctr < pf_ctr_max) pf_ctr++;
+        }
+    } else if (hit && l2_pf[set][way] && type != PREFETCH && type != WRITEBACK) {
+        // first demand hit on a prefetched line: the L2C copy was useful
+        pf_used += roi;
+        if (l2_leader[set]) {
+            pf_ldr_used += roi;
+            if (pf_ctr > 0) pf_ctr--;
+        }
+        l2_pf[set][way] = 0;
+    }
+    if (!hit)
+        l2_pf[set][way] = (type == PREFETCH);
+
+    // Leaders treat prefetches like demand, so pf_ctr sees unbiased lifetimes.
+    uint8_t pf = !l2_leader[set] && type == PREFETCH;
+    uint8_t dead = (pf_ctr == pf_ctr_max);
+    pf_fills += roi && !hit && type == PREFETCH;
+    pf_hits  += roi && hit && type == PREFETCH;
+
+    if (!hit) {
+        // insert at maxRRPV-1; I-RRIP inserts data at maxRRPV (lvl 8), so
+        // unreused data is evicted before any instr line ages
+        l2_instr[set][way] = isInstruction;
+        l2_rrpv[set][way] = (irrip && !isInstruction) ? maxRRPV : maxRRPV-1;
+        // PF_INS: the L2C copy of a prefetch is idle while L1D holds the line.
+        // 1: always insert at maxRRPV. 2: follow pf_ctr in both modes, so
+        // prefetches that do get used in L2C (L2-only fills, early prefetches)
+        // are kept at maxRRPV-1 instead of the I-RRIP data default maxRRPV.
+        if (pf && (pf_ins_mode == 1 || (pf_ins_mode == 2 && dead))) {
+            l2_rrpv[set][way] = maxRRPV;
+            pf_dead_ins += roi;
+        } else if (pf && pf_ins_mode == 2)
+            l2_rrpv[set][way] = maxRRPV-1;
+    } else if (pf && (pf_hit_mode == 1 || (pf_hit_mode == 2 && dead))) {
+        // PF_HIT: a prefetch hit is not reuse by the core; the line is going
+        // back into L1D, so leave its RRPV as is
+    } else if (isInstruction || !irrip) {
+        // promote instr hits (both modes) and all RRIP hits to 0
+        l2_rrpv[set][way] = 0;
+    } else {
+        // irrip data hit: decrement RRPV instead of setting 0
+        l2_rrpv[set][way] = (l2_rrpv[set][way]==0 ? 0 : l2_rrpv[set][way]-1);
+    }
+}
+
+// use this function to print out your own stats at the end of simulation
+void CACHE::l2c_replacement_final_stats()
+{
+}
+
+// ! guarantees running at the end
+struct DynStats {
+    ~DynStats() {
+        cout << "DYN_IRRIP epochs " << n_epochs << " irrip_frac " << (n_epochs ? (double)n_irrip_epochs / n_epochs : 0)
+             << " ratio_min " << ratio_min << " ratio_mean " << (n_epochs ? ratio_sum / n_epochs : 0)
+             << " ratio_max " << ratio_max << endl;
+        // ROI only. used/dead: L2C copies of prefetched lines that got a demand
+        // hit / were evicted without one (all sets, then leader sets only).
+        cout << "DYN_IRRIP_PF fills " << pf_fills << " pf_hits " << pf_hits
+             << " used " << pf_used << " dead " << pf_dead
+             << " ldr_used " << pf_ldr_used << " ldr_dead " << pf_ldr_dead
+             << " dead_inserts " << pf_dead_ins << " pf_ctr_end " << pf_ctr << endl;
+        // ROI only, all sets: L2C lines by fill kind, used / dead at eviction.
+        cout << "DYN_IRRIP_DEAD";
+        for (int k = K_PF; k < N_KIND; k++)
+            cout << " " << kind_name[k] << " " << kind_used[k] << " " << kind_dead[k];
+        cout << endl;
+        cout << "DYN_IRRIP_DEAD_LEADERS";
+        for (int k = K_PF; k < N_KIND; k++)
+            cout << " " << kind_name[k] << " " << ldr_kind_used[k] << " " << ldr_kind_dead[k];
+        cout << endl;
+    }
+} dyn_stats;

@@ -6,6 +6,12 @@
 # Final runs (default) use the spec's settings, which can't be set here:
 #   every trace in ../traces/Trace*.gz, 25M warmup, 25M simulation.
 # The no/lru baseline always runs as config "base".
+#
+# dyn_irrip's prefetch knobs (defaults are the final values):
+#   PF_INS = 1  a prefetch fill is inserted at the max RRPV (0: like other data)
+#   PF_HIT = 1  a prefetch hit does not promote (0: promote like a data hit)
+# Knob study: exp/task3_sweep.toml (all combinations, with the duel) and
+# exp/task3_modes.toml (mode pinned to I-RRIP or RRIP), both on 3dyn_irrip.
 
 metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage", "l1d_load_mpki",
            "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
@@ -13,17 +19,20 @@ metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1
 # Settings for `--test` runs. Every key is optional; defaults shown.
 [test]
 # traces = ["../traces/Trace*.gz"]   # globs, relative to the repo root; e.g. ["../traces/Trace1.gz"]
-warmup = 1_000_000              # default 1_000_000
-sim    = 5_000_000              # default 5_000_000
+warmup = 2_000_000              # default 2_000_000
+sim    = 10_000_000             # default 10_000_000
 
-[config.spp]                    # SPP alone
+[config.spp]                    # SPP alone (LRU at L2C)
 pf = "spp"
 
-[config.dyn]                    # Dynamic I-RRIP alone
+[config.dyn]                    # Dynamic I-RRIP alone (no prefetcher, so the PF knobs never act)
 repl = "dyn_irrip"
-# env = { DYN_THRESH = "0.25" } # pin the value chosen in task 2B, if not the code default
 
-[config.spp_dyn]                # the combination
+[config.spp_dyn_unaware]        # combination with prefetch awareness off
 pf = "spp"
 repl = "dyn_irrip"
-# env = { DYN_THRESH = "0.25" }
+env = { PF_INS = "0", PF_HIT = "0" }
+
+[config.spp_dyn]                # combination, final policy (code defaults)
+pf = "spp"
+repl = "dyn_irrip"

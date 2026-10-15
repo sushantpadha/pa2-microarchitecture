@@ -17,20 +17,34 @@ uint8_t irrip_mode = 1;   // followers start in I-RRIP
 // over, r, and the mode chosen.
 int dyn_log;
 
+// task3: in follower sets a prefetch never raises priority: fill at
+// maxRRPV (pf_ins), no promotion on hit (pf_hit).
+uint8_t pf_ins, pf_hit;
+
 // stats
 uint64_t n_epochs, n_irrip_epochs;
 double ratio_min = 1, ratio_max = 0, ratio_sum;
+
+// task3 stats -- not part of prefetcher state
+// lines evicted with / without a demand hit, by what filled them
+enum { K_NONE, K_PF, K_DATA, K_INSTR, K_WB, K_TRANS, N_KIND };
+const char *kind_name[N_KIND] = {"none", "pf", "data", "instr", "wb", "trans"};
+uint8_t l2_kind[L2C_SET][L2C_WAY], l2_used[L2C_SET][L2C_WAY];
+uint64_t kind_used[N_KIND], kind_dead[N_KIND];
+uint64_t ldr_kind_used[N_KIND], ldr_kind_dead[N_KIND];  // leader sets only
 
 // initialize replacement state
 void CACHE::l2c_initialize_replacement()
 {
     const char *s;
     thresh    = (s = getenv("DYN_THRESH"))  ? atof(s) : 0.15;
-    hyst      = (s = getenv("DYN_HYST"))    ? atof(s) : 0.05;
+    hyst      = (s = getenv("DYN_HYST"))    ? atof(s) : 0;
     n_leaders = (s = getenv("DYN_LEADERS")) ? atoi(s) : 8;
-    epoch     = (s = getenv("DYN_EPOCH"))   ? atoi(s) : 1024;
+    epoch     = (s = getenv("DYN_EPOCH"))   ? atoi(s) : 256;
     place     = (s = getenv("DYN_PLACE"))   ? atoi(s) : 0;
     dyn_log   = (s = getenv("DYN_LOG"))     ? atoi(s) : 0;
+    pf_ins    = (s = getenv("PF_INS"))      ? atoi(s) : 1;
+    pf_hit    = (s = getenv("PF_HIT"))      ? atoi(s) : 1;
     epoch_left = epoch;
 
     // Leader placement: fix k index bits; L2C_SET / 2^k leaders
@@ -55,10 +69,13 @@ void CACHE::l2c_initialize_replacement()
         for (int j=0; j<L2C_WAY; j++) {
             l2_rrpv[i][j] = maxRRPV;
             l2_instr[i][j] = 0;
+            l2_kind[i][j] = K_NONE;
+            l2_used[i][j] = 0;
         }
     }
     cout << "Initialize Dynamic I-RRIP state for L2C, thresh " << thresh << ", hyst " << hyst
-         << ", leaders " << count << ", place " << place << ", epoch " << epoch << endl;
+         << ", leaders " << count << ", place " << place << ", epoch " << epoch
+         << ", pf_ins " << (int)pf_ins << ", pf_hit " << (int)pf_hit << endl;
     assert(count == n_leaders);
 }
 
@@ -68,6 +85,7 @@ uint32_t CACHE::l2c_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, c
     uint8_t irrip = !l2_leader[set] && irrip_mode;
 
     // IRRIP vs RRIP
+    // todo: evict prefetched line
     uint32_t round = 0;
     while (1) {
         if (irrip)
@@ -155,11 +173,33 @@ void CACHE::l2c_update_replacement_state(uint32_t cpu, uint32_t set, uint32_t wa
 
     uint8_t irrip = !l2_leader[set] && irrip_mode;
 
+    // stats: count the evicted line, tag the new one
     if (!hit) {
-        // insert at maxRRPV-1; I-RRIP inserts data at maxRRPV (lvl 8), so
+        uint8_t k = l2_kind[set][way];
+        if (k != K_NONE && warmup_complete[cpu]) {
+            (l2_used[set][way] ? kind_used : kind_dead)[k]++;
+            if (l2_leader[set])
+                (l2_used[set][way] ? ldr_kind_used : ldr_kind_dead)[k]++;
+        }
+        l2_kind[set][way] = type == PREFETCH ? K_PF
+                          : type == WRITEBACK ? K_WB
+                          : (type == LOAD || type == RFO) ? (isInstruction ? K_INSTR : K_DATA)
+                          : K_TRANS;
+        l2_used[set][way] = 0;
+    } else if (type != PREFETCH && type != PREFETCH_TRANSLATION && type != WRITEBACK)
+        l2_used[set][way] = 1;
+
+    uint8_t pf = !l2_leader[set] && type == PREFETCH;  // task3
+
+    if (!hit) {
+        // insert at maxRRPV-1; I-RRIP inserts data at maxRRPV, so
         // unreused data is evicted before any instr line ages
         l2_instr[set][way] = isInstruction;
         l2_rrpv[set][way] = (irrip && !isInstruction) ? maxRRPV : maxRRPV-1;
+        if (pf && pf_ins)
+            l2_rrpv[set][way] = maxRRPV;
+    } else if (pf && pf_hit) {
+        // prefetch hit: no promotion
     } else if (isInstruction || !irrip) {
         // promote instr hits (both modes) and all RRIP hits to 0
         l2_rrpv[set][way] = 0;
@@ -180,5 +220,12 @@ struct DynStats {
         cout << "DYN_IRRIP epochs " << n_epochs << " irrip_frac " << (n_epochs ? (double)n_irrip_epochs / n_epochs : 0)
              << " ratio_min " << ratio_min << " ratio_mean " << (n_epochs ? ratio_sum / n_epochs : 0)
              << " ratio_max " << ratio_max << endl;
+        cout << "DYN_IRRIP_DEAD";
+        for (int k = K_PF; k < N_KIND; k++)
+            cout << " " << kind_name[k] << " " << kind_used[k] << " " << kind_dead[k];
+        cout << endl << "DYN_IRRIP_DEAD_LEADERS";
+        for (int k = K_PF; k < N_KIND; k++)
+            cout << " " << kind_name[k] << " " << ldr_kind_used[k] << " " << ldr_kind_dead[k];
+        cout << endl;
     }
 } dyn_stats;

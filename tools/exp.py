@@ -27,7 +27,7 @@ BUILD = REPO / "tools" / "docker" / "build-gcc7.sh"
 # Final settings are fixed by PS.pdf: every trace, 25M warmup, 25M simulation.
 # Only --test (the toml's [test] section) or the CLI flags change them.
 FINAL = {"traces": ["../traces/Trace*.gz"], "warmup": 25_000_000, "sim": 25_000_000}
-TEST = {"traces": ["../traces/Trace*.gz"], "warmup": 1_000_000, "sim": 5_000_000}
+TEST = {"traces": ["../traces/Trace*.gz"], "warmup": 2_000_000, "sim": 10_000_000}
 TOP_KEYS = {"metrics", "test", "config"}
 CONFIG_KEYS = {"pf", "repl", "env"}
 END = "Region of Interest Statistics"  # printed only when a run finishes
@@ -41,6 +41,12 @@ METRICS = {
     "l1d_accuracy_issued": r"L1D USEFUL LOAD PREFETCHES:.*ACCURACY: (\S+)",
     "l1d_pf_useful":       r"L1D PREFETCH +REQUESTED:.*USEFUL: +(\d+)",
     "l1d_pf_useless":      r"L1D PREFETCH +REQUESTED:.*USELESS: +(\d+)",
+    # L2C copies of prefetched lines: hit by a demand / evicted without one.
+    "l2c_pf_useful":       r"L2C PREFETCH +REQUESTED:.*USEFUL: +(\d+)",
+    "l2c_pf_useless":      r"L2C PREFETCH +REQUESTED:.*USELESS: +(\d+)",
+    # Same, from dyn_irrip's own tracking (PREFETCH fills only, no translations).
+    "dyn_pf_used":         r"DYN_IRRIP_PF .* used (\d+)",
+    "dyn_pf_dead":         r"DYN_IRRIP_PF .* dead (\d+)",
     "l2c_load_mpki":       r"L2C LOAD +ACCESS:.*MPKI: (\S+)",
     "l2c_data_load_mpki":  r"L2C DATA LOAD MPKI: (\S+)",
     "l2c_instr_load_mpki": r"L2C INSTRUCTION LOAD MPKI: (\S+)",

@@ -1,0 +1,15 @@
+# Task 3: does the adaptive prefetch counter beat the static rule, with the team SPP?
+# PF_INS / PF_HIT = 1 is the static rule; 2 follows pf_ctr (trained in leader sets).
+# Duel on, other DYN_* as in Task 2B's chosen setting.
+
+metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_coverage", "l1d_load_mpki",
+           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki", "dyn_pf_used", "dyn_pf_dead"]
+
+[config.ctr]
+pf = "spp"
+repl = "3dyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "0.15", PF_TIE = "0", PF_INS = ["1", "2"], PF_HIT = ["1", "2"] }
+
+[test]
+warmup = 2_000_000
+sim = 10_000_000

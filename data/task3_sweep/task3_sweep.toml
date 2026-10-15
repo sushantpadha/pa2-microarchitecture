@@ -1,0 +1,31 @@
+# Task 3 knob sweep at final settings (25M + 25M, Trace1-3), with the 1B SPP.
+# Every combination of the three prefetch knobs in 3dyn_irrip (the Task 3
+# working copy of dyn_irrip):
+#   PF_HIT  prefetch hit: 0 promote like a data hit, 1 never promote,
+#           2 don't promote while pf_ctr says prefetches are dead
+#   PF_INS  prefetch fill: 0 like other data (RRPV 3 in I-RRIP mode, 2 in RRIP mode),
+#           1 always RRPV 3, 2 follow pf_ctr: RRPV 3 when dead, else 2
+#   PF_TIE  1 = among lines at max RRPV, evict an unused prefetched line first
+# PF_HIT=0 PF_INS=0 PF_TIE=0 is the prefetch-unaware combination.
+# DYN_* pin Task 2B's chosen setting (report/task2b.py BEST: 8 leaders, epoch 256,
+# complement-select placement, threshold 0.15) until it becomes dyn_irrip's default.
+
+metrics = ["ipc", "speedup", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage", "l1d_load_mpki",
+           "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki",
+           "l2c_pf_useful", "l2c_pf_useless", "dyn_pf_used", "dyn_pf_dead"]
+
+[config.spp]                    # SPP alone (LRU at L2C)
+pf = "spp"
+
+[config.dyn]                    # Dynamic I-RRIP alone (task 2B file)
+repl = "dyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "0.15" }
+
+[config.dyn3]                   # 3dyn_irrip without a prefetcher: must equal dyn
+repl = "3dyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "0.15" }
+
+[config.pf]
+pf = "spp"
+repl = "3dyn_irrip"
+env = { DYN_LEADERS = "8", DYN_EPOCH = "256", DYN_PLACE = "0", DYN_THRESH = "0.15", PF_HIT = ["0", "1", "2"], PF_INS = ["0", "1", "2"], PF_TIE = ["0", "1"] }
