@@ -1,0 +1,35 @@
+# Task 2B decision signal: hint ratio (DYN_SIGNAL=0) vs set dueling on
+# instruction-weighted misses (DYN_SIGNAL=1: RRIP leaders vs I-RRIP leaders,
+# followers take the lower misses per access, instr misses x DYN_IMISS_W).
+# W = 1 is plain (unweighted) set dueling. Epoch 1024 RRIP-leader accesses, h = 0.05,
+# placement 0. DYN_LEADERS is per group.
+# ratio8 = dyn_irrip's default config; must match dyn_irrip bit for bit.
+# Final settings: every trace, 25M warmup, 25M simulation.
+
+metrics = ["ipc", "speedup", "l2c_load_mpki", "l2c_instr_load_mpki", "l2c_data_load_mpki"]
+
+[test]
+warmup = 1_000_000
+sim    = 5_000_000
+
+[config.ratio8]
+repl = "dyn_irrip2"
+env = { DYN_SIGNAL = "0", DYN_LEADERS = "8" }
+
+[config.duel8]
+repl = "dyn_irrip2"
+env = { DYN_SIGNAL = "1", DYN_LEADERS = "8", DYN_IMISS_W = ["1", "2", "4", "8"] }
+
+[config.duel16]
+repl = "dyn_irrip2"
+env = { DYN_SIGNAL = "1", DYN_LEADERS = "16", DYN_IMISS_W = ["1", "2", "4", "8"] }
+
+[config.duel32]
+repl = "dyn_irrip2"
+env = { DYN_SIGNAL = "1", DYN_LEADERS = "32", DYN_IMISS_W = ["1", "2", "4", "8"] }
+
+[config.irrip]
+repl = "irrip"
+
+[config.rrip]
+repl = "rrip"
