@@ -21,3 +21,7 @@ pf = "spp"                      # prefetcher/spp.l1d_pref; default "no"
 # PS.pdf's example plots compare IP-stride and SPP against the baseline.
 [config.ip_stride]
 pf = "ip_stride"
+
+[config.ipt]                    # IP table size: sets (log2) x ways
+pf  = "spp"
+env = { SPP_IPT_SET_BITS = ["6", "5", "4"], SPP_IPT_WAYS = ["4", "8"] }

@@ -7,7 +7,7 @@
 //   - pattern: a signature of the IP's last few strides indexes a shared
 //     pattern table that holds the stride that followed that signature last
 //     time. This captures repeating sequences such as (+1,+2,+2,+2,+3)^n.
-// A per-IP 2-bit chooser counts which predictor was right. It starts at
+// A per-IP saturating chooser counts which predictor was right. It starts at
 // "uniform" (uniform strides have priority) and moves to "pattern" only when
 // the pattern table keeps being right where the uniform predictor is wrong.
 //
@@ -29,44 +29,59 @@
 // Knobs (environment variables, read once; the defaults are the final values):
 //   SPP_TLO, SPP_THI   accuracy thresholds for stepping the degree down / up
 //   SPP_DMAX           largest degree
+//   SPP_IPT_SET_BITS   log2 of the IP table sets
+//   SPP_IPT_WAYS       IP table ways
 // Storage is itemised in l1d_prefetcher_final_stats().
 
 #include "cache.h"
 #include <cstdlib>
+#include <vector>
 
 // ---- sizes -----------------------------------------------------------------
-#define IPT_SET_BITS  6           // IP table: 64 sets x 4 ways = 256 IPs
-#define IPT_SETS      (1 << IPT_SET_BITS)
-#define IPT_WAYS      4
-#define IPT_TAG_BITS  10
+// Independent parameters. Everything else below is derived from these.
+// The IP table's sets and ways are knobs (IPT_SET_BITS, IPT_WAYS, below).
+#define IPT_ID_BITS   16          // hashed-IP bits that identify an IP: set index + tag
 #define LINE_BITS     16          // low bits of the last line address kept per IP
 #define SIG_BITS      12          // stride-history signature
 #define SIG_SHIFT     3
-#define PT_ENTRIES    1024        // pattern table, indexed by the folded signature
-#define RPF_ENTRIES   256         // recent-prefetch filter, direct mapped
+#define PT_BITS       10          // pattern table index, from the folded signature
+#define RPF_BITS      8           // recent-prefetch filter index, direct mapped
 #define RPF_TAG_BITS  10
 #define EPOCH         256         // issued prefetches per accuracy evaluation
 #define DMIN          1
-
-#define STRIDE_MAX    63          // |stride| in lines; larger strides always leave the page
-#define CONF_MAX      3           // 2-bit saturating counters
+#define DMAX_LIMIT    16          // largest SPP_DMAX accepted
+#define CONF_MAX      3           // saturating confidence counters
 #define USE_CONF      2           // confidence needed before a prediction is used
-#define CHOOSER_MAX   3           // >= 2: prefer uniform, <= 1: prefer pattern
+#define CHOOSER_MAX   3           // upper half: prefer uniform, lower half: prefer pattern
+
+// Derived.
+#define PT_ENTRIES    (1 << PT_BITS)
+#define RPF_ENTRIES   (1 << RPF_BITS)
+#define STRIDE_MAX    ((1 << (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE)) - 1) // |stride| in lines; larger strides always leave the page
+#define STRIDE_BITS   (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE + 1)          // signed, holds +-STRIDE_MAX
+#define CHOOSER_UNI   ((CHOOSER_MAX + 1) / 2)                         // chooser >= this: prefer uniform
+
+// Bits needed to hold 0..n.
+static constexpr int bits_for(unsigned n) { return n ? 1 + bits_for(n >> 1) : 0; }
+
+static_assert(IPT_ID_BITS <= 32, "the IP hash is 32 bits");
+static_assert(LINE_BITS > STRIDE_BITS, "an in-page stride must fit in the kept line bits");
+static_assert(SIG_BITS <= 2 * PT_BITS, "pt_index folds the signature once");
 
 struct IPEntry {
     bool     valid = false;
-    uint32_t tag = 0;             // IPT_TAG_BITS of the hashed IP
+    uint32_t tag = 0;             // IPT_ID_BITS - IPT_SET_BITS of the hashed IP
     uint32_t last_line = 0;       // LINE_BITS of the last line address
-    int32_t  last_stride = 0;     // 7-bit signed, 0 = none yet
-    uint32_t conf = 0;            // uniform confidence, 2 bits
+    int32_t  last_stride = 0;     // STRIDE_BITS signed, 0 = none yet
+    uint32_t conf = 0;            // uniform confidence, 0..CONF_MAX
     uint32_t sig = 0;             // SIG_BITS stride history
-    uint32_t chooser = CHOOSER_MAX; // 2 bits, start on "uniform"
-    uint32_t lru = 0;             // 2 bits, 0 = most recent
+    uint32_t chooser = CHOOSER_MAX; // 0..CHOOSER_MAX, start on "uniform"
+    uint32_t lru = 0;             // 0..IPT_WAYS-1, 0 = most recent
 };
 
 struct PTEntry {
-    int32_t  stride = 0;          // 7-bit signed, 0 = empty
-    uint32_t conf = 0;            // 2 bits
+    int32_t  stride = 0;          // STRIDE_BITS signed, 0 = empty
+    uint32_t conf = 0;            // 0..CONF_MAX
 };
 
 struct RPFEntry {
@@ -76,22 +91,23 @@ struct RPFEntry {
     uint8_t  cls = 0;             // 0 uniform, 1 pattern (statistics only, not counted as storage)
 };
 
-static IPEntry  ipt[IPT_SETS][IPT_WAYS];
+static std::vector<IPEntry> ipt; // IPT sets x IPT_WAYS, sized at initialization
 static PTEntry  pt[PT_ENTRIES];
 static RPFEntry rpf[RPF_ENTRIES];
 
-// Throttling state: two 9-bit epoch counters (0..EPOCH) and the current degree.
+// Throttling state: two epoch counters (0..EPOCH) and the current degree.
 static uint32_t epoch_issued = 0, epoch_useful = 0;
 static uint32_t degree = 4;
 
 static double   TLO = 0.50, THI = 0.75;
 static uint32_t DMAX = 8;
+static uint32_t IPT_SET_BITS = 6, IPT_WAYS = 4; // 64 sets x 4 ways = 256 IPs
 
 // Statistics only (not hardware), counted after warmup.
 static uint64_t st_sent = 0, st_dup = 0, st_pq_full = 0, st_page_stop = 0, st_epochs = 0,
                 st_redundant = 0;
 static uint64_t st_cand[2] = {0}, st_fill[2] = {0}, st_timely[2] = {0}, st_late[2] = {0};
-static uint64_t st_degree_epochs[17] = {0};
+static uint64_t st_degree_epochs[DMAX_LIMIT + 1] = {0};
 
 static double env_or(const char *name, double dflt)
 {
@@ -101,14 +117,14 @@ static double env_or(const char *name, double dflt)
 
 static uint32_t sig_update(uint32_t sig, int32_t stride)
 {
-    // 7-bit two's complement stride, shifted into the history.
-    return ((sig << SIG_SHIFT) ^ (uint32_t)(stride & 0x7F)) & ((1u << SIG_BITS) - 1);
+    // STRIDE_BITS two's complement stride, shifted into the history.
+    return ((sig << SIG_SHIFT) ^ (uint32_t)(stride & ((1 << STRIDE_BITS) - 1))) & ((1u << SIG_BITS) - 1);
 }
 
 static uint32_t pt_index(uint32_t sig)
 {
-    // Fold the 12-bit signature into 10 bits.
-    return (sig ^ (sig >> 10)) & (PT_ENTRIES - 1);
+    // Fold the SIG_BITS signature into PT_BITS.
+    return (sig ^ (sig >> PT_BITS)) & (PT_ENTRIES - 1);
 }
 
 static uint32_t ip_hash(uint64_t ip)
@@ -118,7 +134,7 @@ static uint32_t ip_hash(uint64_t ip)
 
 // ---- recent-prefetch filter ------------------------------------------------
 static uint32_t rpf_index(uint64_t line) { return line & (RPF_ENTRIES - 1); }
-static uint32_t rpf_tag(uint64_t line)   { return (line >> 8) & ((1u << RPF_TAG_BITS) - 1); }
+static uint32_t rpf_tag(uint64_t line)   { return (line >> RPF_BITS) & ((1u << RPF_TAG_BITS) - 1); }
 
 static bool rpf_hit(uint64_t line)
 {
@@ -135,7 +151,7 @@ static void count(bool useful)
     // Saturate at EPOCH: a timely use can be credited in the epoch after its
     // fill, so useful can run ahead of issued. Any value >= EPOCH already
     // means accuracy >= 1, so saturating never changes a decision, and the
-    // counter fits in 9 bits.
+    // counter fits in bits_for(EPOCH) bits.
     if (useful && epoch_useful < EPOCH)
         epoch_useful++;
     if (++epoch_issued == EPOCH)
@@ -162,15 +178,20 @@ void CACHE::l1d_prefetcher_initialize()
     THI  = env_or("SPP_THI", THI);
     DMAX = (uint32_t)env_or("SPP_DMAX", DMAX);
     if (DMAX < DMIN) DMAX = DMIN;
-    if (DMAX > 16) DMAX = 16;
+    if (DMAX > DMAX_LIMIT) DMAX = DMAX_LIMIT;
     if (degree > DMAX) degree = DMAX;
 
-    for (int s = 0; s < IPT_SETS; s++)
-        for (int w = 0; w < IPT_WAYS; w++)
-            ipt[s][w].lru = w;
+    IPT_SET_BITS = (uint32_t)env_or("SPP_IPT_SET_BITS", IPT_SET_BITS);
+    IPT_WAYS     = (uint32_t)env_or("SPP_IPT_WAYS", IPT_WAYS);
+    if (IPT_SET_BITS > IPT_ID_BITS) IPT_SET_BITS = IPT_ID_BITS;
+    if (IPT_WAYS < 1) IPT_WAYS = 1;
+    ipt.assign((size_t)IPT_WAYS << IPT_SET_BITS, IPEntry());
+    for (size_t i = 0; i < ipt.size(); i++)
+        ipt[i].lru = i % IPT_WAYS;
 
     std::cout << "CPU " << cpu << " L1D Stride Pattern Prefetcher (SPP)"
-              << " TLO " << TLO << " THI " << THI << " DMAX " << DMAX << std::endl;
+              << " TLO " << TLO << " THI " << THI << " DMAX " << DMAX
+              << " IPT_SET_BITS " << IPT_SET_BITS << " IPT_WAYS " << IPT_WAYS << std::endl;
 }
 
 // Issue one prefetch for a line in the trigger's page. Returns false when the
@@ -221,17 +242,17 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         }
     }
 
-    // ---- IP table lookup (4-way, LRU) ----
+    // ---- IP table lookup (set associative, LRU) ----
     uint32_t h = ip_hash(ip);
-    uint32_t set = h & (IPT_SETS - 1);
-    uint32_t tag = (h >> IPT_SET_BITS) & ((1u << IPT_TAG_BITS) - 1);
-    IPEntry *ways = ipt[set];
+    uint32_t set = h & ((1u << IPT_SET_BITS) - 1);
+    uint32_t tag = (uint32_t)(((uint64_t)h >> IPT_SET_BITS) & ((1ull << (IPT_ID_BITS - IPT_SET_BITS)) - 1));
+    IPEntry *ways = &ipt[(size_t)set * IPT_WAYS];
     int w = -1;
-    for (int i = 0; i < IPT_WAYS; i++)
+    for (int i = 0; i < (int)IPT_WAYS; i++)
         if (ways[i].valid && ways[i].tag == tag) { w = i; break; }
 
     auto touch = [&](int way) {
-        for (int i = 0; i < IPT_WAYS; i++)
+        for (int i = 0; i < (int)IPT_WAYS; i++)
             if (ways[i].lru < ways[way].lru) ways[i].lru++;
         ways[way].lru = 0;
     };
@@ -245,7 +266,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         if (cache_hit)
             return;
         // Replace the LRU way; nothing to predict yet.
-        for (int i = 0; i < IPT_WAYS; i++)
+        for (int i = 0; i < (int)IPT_WAYS; i++)
             if (ways[i].lru == IPT_WAYS - 1) { w = i; break; }
         ways[w] = IPEntry();
         ways[w].valid = true;
@@ -310,7 +331,7 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
     bool uni_ok = e.conf >= USE_CONF;
     PTEntry &q = pt[pt_index(e.sig)];
     bool pat_ok = q.conf >= USE_CONF;
-    bool use_uniform = uni_ok && (e.chooser >= 2 || !pat_ok);
+    bool use_uniform = uni_ok && (e.chooser >= CHOOSER_UNI || !pat_ok);
     bool use_pattern = !use_uniform && pat_ok;
 
     int64_t pf_line = line;
@@ -355,18 +376,17 @@ void CACHE::l1d_prefetcher_cache_fill(uint64_t v_addr, uint64_t addr, uint32_t s
 void CACHE::l1d_prefetcher_final_stats()
 {
     // Storage (bits), from the field widths above.
-    const int ipt_entry = 1 /*valid*/ + IPT_TAG_BITS + LINE_BITS + 7 /*stride*/ + 2 /*conf*/
-                        + SIG_BITS + 2 /*chooser*/ + 2 /*lru*/;
-    const int pt_entry  = 7 /*stride*/ + 2 /*conf*/;
+    const int ipt_entry = 1 /*valid*/ + (IPT_ID_BITS - IPT_SET_BITS) /*tag*/ + LINE_BITS
+                        + STRIDE_BITS + bits_for(CONF_MAX) + SIG_BITS + bits_for(CHOOSER_MAX)
+                        + bits_for(IPT_WAYS - 1) /*lru*/;
+    const int pt_entry  = STRIDE_BITS + bits_for(CONF_MAX);
     const int rpf_entry = 1 /*valid*/ + RPF_TAG_BITS + 1 /*filled*/;
-    int dbits = 0;
-    while ((1u << dbits) <= DMAX) dbits++;
-    const int ctrl      = 9 /*issued, 0..256*/ + 9 /*useful, 0..256*/ + dbits /*degree*/;
-    const int total = IPT_SETS * IPT_WAYS * ipt_entry + PT_ENTRIES * pt_entry
-                    + RPF_ENTRIES * rpf_entry + ctrl;
+    const int ctrl      = 2 * bits_for(EPOCH) /*issued, useful*/ + bits_for(DMAX) /*degree*/;
+    const int ipt_n     = (int)ipt.size();
+    const int total = ipt_n * ipt_entry + PT_ENTRIES * pt_entry + RPF_ENTRIES * rpf_entry + ctrl;
 
     std::cout << "CPU " << cpu << " L1D SPP final stats" << std::endl;
-    std::cout << "SPP storage bits: IPT " << IPT_SETS * IPT_WAYS << "x" << ipt_entry
+    std::cout << "SPP storage bits: IPT " << ipt_n << "x" << ipt_entry
               << " PT " << PT_ENTRIES << "x" << pt_entry
               << " RPF " << RPF_ENTRIES << "x" << rpf_entry
               << " ctrl " << ctrl << " total " << total << " (" << total / 8.0 << " bytes)" << std::endl;
