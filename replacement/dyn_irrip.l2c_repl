@@ -13,6 +13,10 @@ uint32_t n_ia, n_im, n_ta, n_tm;  // instr accesses, instr misses, total accesse
 uint32_t epoch_left;
 uint8_t irrip_mode = 1;   // followers start in I-RRIP
 
+// DYN_LOG=1 prints one line per decision (off by default): whether warmup is
+// over, r, and the mode chosen.
+int dyn_log;
+
 // stats
 uint64_t n_epochs, n_irrip_epochs;
 double ratio_min = 1, ratio_max = 0, ratio_sum;
@@ -22,10 +26,11 @@ void CACHE::l2c_initialize_replacement()
 {
     const char *s;
     thresh    = (s = getenv("DYN_THRESH"))  ? atof(s) : 0.15;
-    hyst      = (s = getenv("DYN_HYST"))    ? atof(s) : 0;
+    hyst      = (s = getenv("DYN_HYST"))    ? atof(s) : 0.05;
     n_leaders = (s = getenv("DYN_LEADERS")) ? atoi(s) : 8;
     epoch     = (s = getenv("DYN_EPOCH"))   ? atoi(s) : 1024;
     place     = (s = getenv("DYN_PLACE"))   ? atoi(s) : 0;
+    dyn_log   = (s = getenv("DYN_LOG"))     ? atoi(s) : 0;
     epoch_left = epoch;
 
     // Leader placement: fix k index bits; L2C_SET / 2^k leaders
@@ -132,6 +137,10 @@ void CACHE::l2c_update_replacement_state(uint32_t cpu, uint32_t set, uint32_t wa
                 irrip_mode = 0;
             n_ia /= 2; n_im /= 2; n_ta /= 2; n_tm /= 2;
             epoch_left = epoch;
+
+            if (dyn_log)
+                cout << "DYN_LOG roi " << (int)warmup_complete[cpu] << " r " << ratio
+                     << " mode " << (int)irrip_mode << endl;
 
             // ! for stats
             if (warmup_complete[cpu]) {

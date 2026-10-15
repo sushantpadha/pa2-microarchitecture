@@ -1,6 +1,6 @@
 # Task 2B final: dyn_irrip with its code defaults (no env), as the graders build it.
 # Defaults (chosen from task2b_sweep): placement 0, 8 leaders, epoch 1024, T = 0.15,
-# no hysteresis. Its numbers must equal n8.DYN_EPOCH=1024.DYN_THRESH=0.15 in
+# hysteresis 0.05. Its numbers must equal n8.DYN_EPOCH=1024.DYN_HYST=0.05 in
 # data/task2b_sweep exactly.
 # Final settings: every trace, 25M warmup, 25M simulation.
 
@@ -22,4 +22,4 @@ repl = "rrip"
 # Check: the defaults set explicitly. Must match dyn_irrip exactly.
 [config.dyn_env]
 repl = "dyn_irrip"
-env = { DYN_PLACE = "0", DYN_LEADERS = "8", DYN_EPOCH = "1024", DYN_THRESH = "0.15", DYN_HYST = "0" }
+env = { DYN_PLACE = "0", DYN_LEADERS = "8", DYN_EPOCH = "1024", DYN_THRESH = "0.15", DYN_HYST = "0.05" }
