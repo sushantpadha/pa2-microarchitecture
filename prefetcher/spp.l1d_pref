@@ -42,9 +42,9 @@
 // The IP table's sets and ways are knobs (IPT_SET_BITS, IPT_WAYS, below).
 #define IPT_ID_BITS   16          // hashed-IP bits that identify an IP: set index + tag
 #define LINE_BITS     16          // low bits of the last line address kept per IP
-#define SIG_BITS      12          // stride-history signature
+#define SIG_BITS      9          // stride-history signature
 #define SIG_SHIFT     3
-#define PT_BITS       10          // pattern table index, from the folded signature
+#define PT_BITS       9          // pattern table index, from the folded signature
 #define RPF_BITS      8           // recent-prefetch filter index, direct mapped
 #define RPF_TAG_BITS  10
 #define EPOCH         256         // issued prefetches per accuracy evaluation
@@ -77,7 +77,7 @@ struct IPEntry {
     uint32_t sig = 0;             // SIG_BITS stride history
     uint32_t chooser = CHOOSER_MAX; // 0..CHOOSER_MAX, start on "uniform"
     uint32_t lru = 0;             // 0..IPT_WAYS-1, 0 = most recent
-};
+}; // 32 + 24 + LOG2_IPT_WAYS - IPT_SET_BITS
 
 struct PTEntry {
     int32_t  stride = 0;          // STRIDE_BITS signed, 0 = empty
@@ -102,6 +102,7 @@ static uint32_t degree = 4;
 static double   TLO = 0.50, THI = 0.75;
 static uint32_t DMAX = 8;
 static uint32_t IPT_SET_BITS = 5, IPT_WAYS = 4; // 32 sets x 4 ways = 128 IPs
+static uint32_t DISTANCE = 0;
 
 // Statistics only (not hardware), counted after warmup.
 static uint64_t st_sent = 0, st_dup = 0, st_pq_full = 0, st_page_stop = 0, st_epochs = 0,
@@ -124,7 +125,7 @@ static uint32_t sig_update(uint32_t sig, int32_t stride)
 static uint32_t pt_index(uint32_t sig)
 {
     // Fold the SIG_BITS signature into PT_BITS.
-    return (sig ^ (sig >> PT_BITS)) & (PT_ENTRIES - 1);
+    return sig;
 }
 
 static uint32_t ip_hash(uint64_t ip)
@@ -176,6 +177,7 @@ void CACHE::l1d_prefetcher_initialize()
 {
     TLO  = env_or("SPP_TLO", TLO);
     THI  = env_or("SPP_THI", THI);
+    DISTANCE  = env_or("DISTANCE", DISTANCE);
     DMAX = (uint32_t)env_or("SPP_DMAX", DMAX);
     if (DMAX < DMIN) DMAX = DMIN;
     if (DMAX > DMAX_LIMIT) DMAX = DMAX_LIMIT;
@@ -336,23 +338,23 @@ void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
 
     int64_t pf_line = line;
     if (use_uniform) {
-        for (uint32_t k = 0; k < degree; k++) {
+        for (uint32_t k = 0; k < degree+DISTANCE; k++) {
             pf_line += e.last_stride;
             if ((uint64_t)pf_line >> (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE) != page) { if (warmup_complete[cpu]) st_page_stop++; break; }
             if (warmup_complete[cpu]) st_cand[0]++;
-            if (!issue(this, ip, addr, pf_line, 0)) break;
+            if (k >= DISTANCE && !issue(this, ip, addr, pf_line, 0)) break;
         }
     } else if (use_pattern) {
         // Walk the pattern table ahead: each predicted stride extends a
         // speculative signature that indexes the next step.
         uint32_t s = e.sig;
-        for (uint32_t k = 0; k < degree; k++) {
+        for (uint32_t k = 0; k < degree+DISTANCE; k++) {
             PTEntry &n = pt[pt_index(s)];
             if (n.conf < USE_CONF) break;
             pf_line += n.stride;
             if ((uint64_t)pf_line >> (LOG2_PAGE_SIZE - LOG2_BLOCK_SIZE) != page) { if (warmup_complete[cpu]) st_page_stop++; break; }
             if (warmup_complete[cpu]) st_cand[1]++;
-            if (!issue(this, ip, addr, pf_line, 1)) break;
+            if (k >= DISTANCE && !issue(this, ip, addr, pf_line, 1)) break;
             s = sig_update(s, n.stride);
         }
     }

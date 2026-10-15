@@ -5,7 +5,7 @@
 #   every trace in ../traces/Trace*.gz, 25M warmup, 25M simulation.
 # The no/lru baseline always runs as config "base".
 
-metrics = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage"]
+metrics = ["ipc", "speedup", "l1d_load_mpki", "l1d_accuracy_issued", "l1d_accuracy_resolved", "l1d_coverage", "l1d_pf_useful", "l1d_pf_useless", "l1d_pf_late_pct"]
 
 # Settings for `--test` runs. Every key is optional; defaults shown.
 [test]
@@ -24,4 +24,4 @@ pf = "ip_stride"
 
 [config.ipt]                    # IP table size: sets (log2) x ways
 pf  = "spp"
-env = { SPP_IPT_SET_BITS = ["6", "5", "4"], SPP_IPT_WAYS = ["4", "8"] }
+env = { SPP_IPT_SET_BITS = ["6", "5", "4"], SPP_IPT_WAYS = ["4", "6", "8"], DISTANCE = ["0", "1", "2", "3", "4"] }
