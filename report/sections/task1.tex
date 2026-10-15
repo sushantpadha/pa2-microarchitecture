@@ -5,14 +5,135 @@
 % TODO
 
 \subsection{Task 1B: Design}
-% TODO
+
+The prefetcher (\texttt{prefetcher/spp.l1d\_pref}) sits at the L1D and works on the cache-line strides of each load IP. It never prefetches outside the 4\,KB page of the access that triggers it. It has three tables:
+\begin{enumerate}
+  \item an \textbf{IP table} (32 sets $\times$ 4 ways, LRU) that holds each tracked IP's uniform stride and stride signature,
+  \item a \textbf{pattern table} (1024 entries, direct mapped) from a signature to the stride that followed it,
+  \item a \textbf{recent-prefetch filter} (256 entries, direct mapped) that drops repeat requests and measures accuracy.
+\end{enumerate}
+
+\textbf{IP table.} An IP gets an entry on its first L1D miss. Once tracked, it trains on every load. Each entry keeps the low 16 bits of the IP's last line address, its last stride with a 2-bit confidence, a 12-bit stride signature, and a 2-bit chooser. A repeated line gives no new stride and is skipped. A stride larger than 63 lines always leaves the page, so it resets the entry's stride state.
+
+\textbf{Two predictors per IP, chosen dynamically.} For each new stride $s$:
+\begin{itemize}
+  \item \emph{Uniform}: remember the last stride and predict that it repeats. Its confidence goes up when it repeats and down otherwise. The stored stride is replaced only at confidence 0, so one stray stride does not reset a stable one.
+  \item \emph{Pattern}: predict the stride that followed the same recent stride history last time. Storing the last few strides of every IP raw, and a map from each history to its next stride, would be too large. Instead the history is hashed into a 12-bit signature, $\textit{sig} \leftarrow (\textit{sig} \ll 3) \oplus s$, with $s$ as 7-bit two's complement. Each new stride moves the older ones 3 bits up, so the signature covers the last 4 strides: the newest whole, the older ones in fewer bits. A pattern such as $(+1,+2,+2,+2,+3)^n$ needs a history of 3 strides. After $(+2,+2)$ the next stride can be $+2$ or $+3$, but each of the five 3-stride histories has a single next stride.
+  % TODO: data for the history length (signature sweep pending): does a 4-stride history beat 2 or 3 on the traces?
+\end{itemize}
+A 2-bit chooser per IP starts at ``uniform'' and moves one step toward the predictor that was right whenever exactly one of them was. The uniform prediction is used when it is confident (confidence $\ge 2$) and the chooser is in its upper half, or when the pattern table has no confident prediction. Otherwise the pattern prediction is used. So uniform strides have priority, and an IP falls back to the pattern table only after the pattern table has been right where the uniform stride was wrong.
+
+\textbf{Pattern table.} The signature, folded from 12 to 10 bits, indexes 1024 entries shared by all IPs. Each holds a 7-bit stride and a 2-bit confidence. The entries have no tag, so two signatures with the same index share an entry.
+% TODO: add a tag to the pattern table; sweep PT_BITS (pending).
+
+\textbf{Issuing.} The chosen predictor is walked ahead \emph{degree} steps: $L+s, L+2s, \dots$ for a uniform stride. For a pattern, each predicted stride is shifted into a copy of the signature to look up the next one. The walk stops at the first line outside the page, or at a pattern-table entry without confidence. A prefetch fills the L1D unless half of the L1D MSHRs are busy. In that case it fills only the L2.
+
+\textbf{Recent-prefetch filter (RPF).} The RPF holds the lines requested recently, indexed by the low 8 bits of the line address with a 10-bit tag. A line already in it is not requested again. It also records whether each request has filled the L1D, which the accuracy checker uses (see Accuracy throttling).
+
+% TODO: prefetch distance. We tried adding a constant distance to the prefetched strides to reduce lateness; it did not help. Needs the run data before it goes in. Measured lateness of the final design (late / (useful + late), from the L1D LATE PREFETCHES counter): 7.4%, 4.2%, 18.2% on Traces 1-3.
 
 \subsection{Storage overhead}
-% TODO
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Structure & Entries & Bits per entry & Bits \\
+\midrule
+IP table & 128 & 53 & 6{,}784 \\
+\multicolumn{4}{@{}l}{\quad valid 1, IP tag 11, last line (low bits) 16, stride 7,} \\
+\multicolumn{4}{@{}l}{\quad stride confidence 2, signature 12, chooser 2, LRU 2} \\
+Pattern table: stride 7, confidence 2 & 1024 & 9 & 9{,}216 \\
+Recent-prefetch filter: valid 1, line tag 10, filled 1 & 256 & 12 & 3{,}072 \\
+Throttle: issued 9, useful 9, degree 4 & 1 & 22 & 22 \\
+\midrule
+Total & & & 19{,}094 bits $=$ 2{,}386.75 bytes \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Widths: a stride is at most $\pm 63$ lines, since a larger one always leaves the page, so it takes 7 bits. The IP tag is 11 bits: an IP is identified by 16 hashed bits, 5 of which pick the set. The epoch counters count to 256, hence 9 bits. The degree goes up to 8, hence 4 bits.
 
 \subsection{Accuracy throttling}
-% TODO
+
+\textbf{Accuracy checker.} The RPF records whether each requested line has filled the L1D.
+\begin{itemize}
+  \item A prefetch is counted as issued once it fills the L1D.
+  \item It is useful if a demand load reaches the line while the line is still in the RPF.
+  \item A demand that misses on a requested line that has not filled yet is a late (or L2-only) prefetch. The prediction was right, so it counts as both issued and useful.
+  \item A demand that hits on a requested line that never filled means the line was already cached. That prefetch was redundant and is not counted.
+\end{itemize}
+A prefetch that fills only the L2 is counted only if a demand reaches it, so an unused one is not seen.
+
+\textbf{Degree control.} The degree is not fixed. It is chosen at run time. Every epoch of 256 counted prefetches, accuracy $a = \textit{useful}/\textit{issued}$ is compared with two thresholds. The degree goes up by one if $a \ge 0.75$, down by one if $a < 0.50$, and otherwise stays. It ranges from 1 to 8 and starts at 4.
+
+\textbf{Why these thresholds.}
+% TODO: deliverable. Justify T_low = 0.50 and T_high = 0.75 from the mechanism (cost of a useless vs gain of a useful prefetch), and back it with a sweep on the current design (32x4 IP table). No such run is in data/ yet.
+
+\textbf{Why these degrees.}
+% TODO: deliverable. Justify step +-1, floor 1 (no prefetches means nothing to measure, so the degree could never come back up) and cap 8, with a sweep of the cap. No such run is in data/ yet.
 
 \subsection{Results}
-% TODO
 
+25M warmup and 25M simulated instructions per trace. The baseline has no L1D prefetcher and LRU at the L2C. Accuracy is ChampSim's: useful prefetches / prefetches issued to the L2. Mean: geometric for speedup, arithmetic otherwise.
+
+\begin{center}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Trace & Prefetcher & IPC & Speedup & L1D load MPKI & Accuracy (\%) & Coverage (\%) \\
+\midrule
+Trace1 & none (baseline) & 0.2323 & 1.0000 & 10.68 & -- & -- \\
+       & IP-stride       & 0.2335 & 1.0048 & 10.12 & 52.7 & 5.2 \\
+       & SPP             & 0.2347 & 1.0099 &  9.47 & 55.9 & 11.4 \\
+\midrule
+Trace2 & none (baseline) & 0.2512 & 1.0000 & 13.54 & -- & -- \\
+       & IP-stride       & 0.2513 & 1.0004 & 13.44 & 38.2 & 0.7 \\
+       & SPP             & 0.2549 & 1.0150 & 12.90 & 64.4 & 4.7 \\
+\midrule
+Trace3 & none (baseline) & 0.3821 & 1.0000 &  3.40 & -- & -- \\
+       & IP-stride       & 0.3829 & 1.0021 &  3.32 & 16.0 & 2.5 \\
+       & SPP             & 0.3917 & 1.0252 &  2.71 & 49.7 & 20.4 \\
+\midrule
+Mean   & IP-stride       & 0.2892 & 1.0024 &  8.96 & 35.6 & 2.8 \\
+       & SPP             & 0.2938 & 1.0167 &  8.36 & 56.7 & 12.2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.32\textwidth]{t1_ipc.png}\hfill
+\includegraphics[width=0.32\textwidth]{t1_speedup.png}\hfill
+\includegraphics[width=0.32\textwidth]{t1_mpki.png}\\[0.4em]
+\includegraphics[width=0.32\textwidth]{t1_accuracy.png}\hfill
+\includegraphics[width=0.32\textwidth]{t1_coverage.png}
+\end{center}
+
+SPP is faster than IP-stride on every trace, with higher accuracy and coverage on every trace.
+
+\textbf{Why the speedup is smaller than the coverage.} SPP removes 9\% of L1D load misses (mean MPKI 8.36 against 9.21) but gains 1.7\% IPC.
+% TODO: explain. Data in the baseline logs: L1I MPKI 14.5, 40.0, 2.1 and branch MPKI 16.1, 6.3, 7.2 on Traces 1-3 (frontend-bound?); Trace3, with the fewest L1I misses, gains most. Not yet a measured cause.
+
+\textbf{IP table size.} We swept the IP table's sets and ways, with SPP otherwise at its defaults:
+
+\begin{center}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Sets $\times$ ways & Entries & Speedup & Coverage (\%) & SPP storage (bytes) \\
+\midrule
+16 $\times$ 4 & 64 & 1.0162 & 12.11 & 1{,}970.75 \\
+\textbf{32 $\times$ 4} & \textbf{128} & \textbf{1.0167} & \textbf{12.17} & \textbf{2{,}386.75} \\
+16 $\times$ 8 & 128 & 1.0166 & 12.23 & 2{,}418.75 \\
+64 $\times$ 4 & 256 & 1.0164 & 12.04 & 3{,}202.75 \\
+32 $\times$ 8 & 256 & 1.0164 & 12.03 & 3{,}266.75 \\
+64 $\times$ 8 & 512 & 1.0165 & 12.01 & 4{,}930.75 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.8\textwidth]{t1_ipt.png}
+\end{center}
+
+All six sizes are within 0.0005 of each other in speedup and 0.23 points in coverage, and more entries do not help steadily, so the IP table can be small. We use 32 $\times$ 4: it has the highest speedup, at 25\% less storage than 64 $\times$ 4.
+% TODO: 16x4 is 17% smaller still for 0.0005 less speedup; say why we did not take it, or take it.
+% TODO: why size barely matters (allocation only on L1D misses keeps the table to IPs worth tracking?). Not measured: count distinct allocated IPs.
