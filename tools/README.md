@@ -111,5 +111,14 @@ At the end, a summary: counts of builds, runs done/failed/skipped, total time, a
 | `l1d_coverage` | `100 * (1 - l1d_load_miss / l1d_load_miss of base)`, in % (PS.pdf's definition); NaN when base has 0 misses |
 | `l2c_load_mpki` | `L2C LOAD` line |
 | `l2c_instr_load_mpki`, `l2c_data_load_mpki` | `L2C INSTRUCTION/DATA LOAD MPKI` lines |
+| `llc_load_mpki` | `LLC LOAD` line |
+| `l1d_pf_requested`, `l1d_pf_issued` | `L1D PREFETCH REQUESTED` line: prefetches the prefetcher asked for, and those that entered the PQ |
+| `l1d_pf_to_l2` | `PREFETCH ISSUED TO LOWER LEVEL`: prefetches that missed in L1D and went to L2 (the denominator of `l1d_accuracy_issued`) |
+| `l1d_pf_fill_l1`, `l1d_pf_fill_l2` | `L1D PREFETCHES SAME/DIFFERENT FILL-ORIGIN LEVEL`: of those, how many fill L1D, and how many fill only L2 |
+| `l1d_pf_late` | `LATE PREFETCHES`: demand misses that merged into an in-flight prefetch in the L1D MSHR. Correct but late; still counted as misses |
+| `l1d_pf_late_pct` | `100 * late / (useful + late)`: share of correct prefetches that arrived late, in %. NaN when both are 0 |
+| `l1d_pf_dropped` | `DROPPED PREFETCHES` on the L1D line |
+| `l2c_miss_latency`, `llc_miss_latency` | `AVERAGE MISS LATENCY` lines, in cycles. L1D's is left out: its counter is broken (it reports hundreds of thousands of cycles) |
+| `spp_accuracy` | SPP's own accuracy checker (`SPP issued:` line), in %. NaN for other prefetchers |
 
 To add a metric, add a regex to `METRICS` in `tools/exp.py` and extend `selftest` if it matters.

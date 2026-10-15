@@ -44,8 +44,26 @@ METRICS = {
     "l2c_load_mpki":       r"L2C LOAD +ACCESS:.*MPKI: (\S+)",
     "l2c_data_load_mpki":  r"L2C DATA LOAD MPKI: (\S+)",
     "l2c_instr_load_mpki": r"L2C INSTRUCTION LOAD MPKI: (\S+)",
+    "llc_load_mpki":       r"LLC LOAD +ACCESS:.*MPKI: (\S+)",
+    # Prefetch flow at L1D: requested by the prefetcher -> issued into the PQ ->
+    # missed in L1D and sent to L2 (split by fill level: L1D, or L2 only).
+    "l1d_pf_requested":    r"L1D PREFETCH +REQUESTED: +(\d+)",
+    "l1d_pf_issued":       r"L1D PREFETCH +REQUESTED:.*ISSUED: +(\d+)",
+    "l1d_pf_to_l2":        r"L1D USEFUL LOAD PREFETCHES:.*PREFETCH ISSUED TO LOWER LEVEL: +(\d+)",
+    "l1d_pf_fill_l1":      r"L1D PREFETCHES SAME FILL-ORIGIN LEVEL: (\d+)",
+    "l1d_pf_fill_l2":      r"L1D PREFETCHES SAME FILL-ORIGIN LEVEL:.*DIFFERENT FILL-ORIGIN LEVEL: (\d+)",
+    # Demand misses that merged into an in-flight prefetch in the L1D MSHR:
+    # correct but late, and still counted as misses.
+    "l1d_pf_late":         r"L1D TIMELY PREFETCHES:.*LATE PREFETCHES: (\d+)",
+    "l1d_pf_dropped":      r"L1D TIMELY PREFETCHES:.*DROPPED PREFETCHES: (\d+)",
+    # Mean cycles from MSHR allocation to fill. Not L1D: its counter is broken
+    # (it reports hundreds of thousands of cycles).
+    "l2c_miss_latency":    r"L2C AVERAGE MISS LATENCY: (\S+)",
+    "llc_miss_latency":    r"LLC AVERAGE MISS LATENCY: (\S+)",
+    # SPP's own accuracy checker (prefetcher/spp.l1d_pref); NaN for other prefetchers.
+    "spp_accuracy":        r"SPP issued:.*accuracy: (\S+)",
 }
-DERIVED = ["speedup", "l1d_coverage", "l1d_accuracy_resolved"]  # see parse()
+DERIVED = ["speedup", "l1d_coverage", "l1d_accuracy_resolved", "l1d_pf_late_pct"]  # see parse()
 
 # Plain ANSI codes work on any modern terminal; skip them when piped or on TERM=dumb.
 TTY = sys.stdout.isatty() and os.environ.get("TERM", "dumb") != "dumb"
@@ -285,6 +303,8 @@ def parse(configs, trace_names, out):
     # useless), in %. "Useless" counts prefetched lines evicted unused.
     resolved = (df.l1d_pf_useful + df.l1d_pf_useless).replace(0, np.nan)
     df["l1d_accuracy_resolved"] = 100 * df.l1d_pf_useful / resolved
+    # Share of correct prefetches that arrived late, in %.
+    df["l1d_pf_late_pct"] = 100 * df.l1d_pf_late / (df.l1d_pf_useful + df.l1d_pf_late).replace(0, np.nan)
     # In %, like the accuracies and PS.pdf's example plot. Undefined (NaN, not
     # -inf) when the baseline has no misses.
     df["l1d_coverage"] = 100 * (1 - df.l1d_load_miss / df.trace.map(base.l1d_load_miss).replace(0, np.nan))
@@ -322,6 +342,7 @@ def cmd_selftest(_):
     assert row["l1d_load_miss"] == 0, row
     assert row["l2c_instr_load_mpki"] == 0, row
     assert row["l1d_pf_useful"] == 0 and row["l1d_pf_useless"] == 0, row
+    assert row["l1d_pf_late"] == 0 and row["l1d_pf_fill_l2"] == 0, row
     print("[selftest] ok")
 
 
