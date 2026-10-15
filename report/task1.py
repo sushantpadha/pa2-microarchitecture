@@ -9,6 +9,7 @@ no-prefetcher baseline, as in PS.pdf's examples. t1_ipt.png is the IP table
 size sweep. Means over traces: geometric for speedup, arithmetic otherwise
 (same as tools/exp.py). Accuracy is ChampSim's own (useful / issued).
 """
+import re
 import sys
 from pathlib import Path
 
@@ -50,13 +51,14 @@ def bars(df, metric, series, ylabel, name, geo=False, baseline=None, ylim=None, 
     groups = traces + ["Mean"]
     x = np.arange(len(groups))
     w = 0.8 / len(series)
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
+    many = len(series) > 3       # too many bars to label each one
+    fig, ax = plt.subplots(figsize=(10 if many else 6.4, 3.8 if many else 3.4))
     for i, (cfg, label, color) in enumerate(series):
         d = df[df.config == cfg].set_index("trace")[metric]
         vals = [d[t] for t in traces] + [mean(d, geo)]
         pos = x - 0.4 + w * (i + 0.5)
         ax.bar(pos, vals, w * 0.92, color=color, label=label)
-        for p, v in zip(pos, vals):
+        for p, v in ([] if many else zip(pos, vals)):
             ax.annotate(fmt.format(v), (p, v), xytext=(0, 2), textcoords="offset points",
                         ha="center", va="bottom", fontsize=7, color=MUTED)
     if baseline is not None:
@@ -66,11 +68,11 @@ def bars(df, metric, series, ylabel, name, geo=False, baseline=None, ylim=None, 
     ax.set_ylabel(ylabel)
     if ylim:
         ax.set_ylim(*ylim)
-    ax.legend(loc="upper left", ncols=len(series) + (baseline is not None), fontsize=8,
-              bbox_to_anchor=(0, 1.12))
-    fig.savefig(FIG / name)
+    n = len(series) + (baseline is not None)
+    ax.legend(loc="lower left", ncols=min(n, 5), fontsize=8, bbox_to_anchor=(0, 1.0))
+    fig.savefig(FIG / name)   # name may be an absolute path, which / keeps as is
     plt.close(fig)
-    print(f"[task1] {name}")
+    print(f"[task1] {Path(name).name}")
 
 
 def ipt(df):
@@ -106,9 +108,100 @@ def ipt(df):
     return rows
 
 
+CATEGORICAL = ["#8a8985", "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6"]
+METRICS = {
+    "ipc": "IPC", "speedup": "Speedup over baseline", "l1d_load_miss": "L1D load misses",
+    "l1d_load_mpki": "L1D load MPKI", "l1d_accuracy_issued": "L1D prefetch accuracy, useful / issued (%)",
+    "l1d_accuracy_resolved": "L1D prefetch accuracy, useful / (useful + useless) (%)",
+    "l1d_pf_useful": "Useful L1D prefetches", "l1d_pf_useless": "Useless L1D prefetches",
+    "l1d_coverage": "L1D coverage (%)", "l2c_load_mpki": "L2C load MPKI",
+    "l2c_data_load_mpki": "L2C data load MPKI", "l2c_instr_load_mpki": "L2C instruction load MPKI",
+}
+
+
+def label(cfg):
+    if cfg.startswith("ipt."):
+        sb, w = (int(p.split("=")[1]) for p in cfg.split(".")[1:])
+        return f"SPP {1 << sb}x{w}" + (" (default)" if (sb, w) == (6, 4) else "")
+    return {"base": "Baseline", "ip_stride": "IP-stride", "spp": "SPP"}[cfg]
+
+
+def all_metrics(df, out):
+    """One grouped bar chart per stats.csv metric, every config except spp
+    (identical to the default IPT point)."""
+    cfgs = ["base", "ip_stride"] + sorted((c for c in df.config.unique() if c.startswith("ipt.")),
+                                          key=lambda c: tuple(-int(p.split("=")[1]) for p in c.split(".")[1:]))
+    for m, ylabel in METRICS.items():
+        d = df[df.config.isin(cfgs)]
+        # The baseline is 1 or 0 by definition for speedup and coverage, and NaN for accuracy.
+        series = [(c, label(c), col) for c, col in zip(cfgs, CATEGORICAL)
+                  if d[d.config == c][m].notna().all() and not (c == "base" and m in ("speedup", "l1d_coverage"))]
+        ylim = None
+        if m == "speedup":   # all within a few percent of 1: zoom in
+            v = d[d.config != "base"][m]
+            ylim = (min(v.min(), 1.0) - 0.005, v.max() + 0.005)
+        bars(d, m, series, ylabel, out / f"{m}.png", geo=m == "speedup",
+             baseline=1.0 if m == "speedup" else None, ylim=ylim, fmt="{:.3g}")
+
+
+SPP_CLS = re.compile(r"SPP (uniform|pattern) candidates: (\d+) fills: (\d+) timely: (\d+) late: (\d+) accuracy: (\S+)")
+SPP_HIST = re.compile(r"degree histogram:((?: \d+:\d+)+)")
+
+
+def spp_internals(out):
+    """SPP's own stats for the default config: uniform vs pattern prefetches,
+    and the share of epochs spent at each degree."""
+    traces = sorted(p.stem for p in (DATA / "spp").glob("*.log"))
+    logs = {t: (DATA / "spp" / f"{t}.log").read_text() for t in traces}
+    x = np.arange(len(traces))
+    names = [t.replace("Trace", "Trace ") for t in traces]
+
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.4))
+    for i, (cls, color) in enumerate((("uniform", IPS), ("pattern", SPP))):
+        rows = [next(r for r in SPP_CLS.findall(logs[t]) if r[0] == cls) for t in traces]
+        fills = [int(r[2]) + int(r[4]) for r in rows]          # filled + late = counted as issued
+        acc = [float(r[5]) for r in rows]
+        for ax, vals, fmt in ((axes[0], fills, "{:,}"), (axes[1], acc, "{:.1f}")):
+            pos = x - 0.2 + 0.4 * i
+            ax.bar(pos, vals, 0.37, color=color, label=cls.capitalize())
+            for p, v in zip(pos, vals):
+                ax.annotate(fmt.format(v), (p, v), xytext=(0, 2), textcoords="offset points",
+                            ha="center", va="bottom", fontsize=7, color=MUTED)
+    axes[0].set_ylabel("Prefetches counted as issued")
+    axes[1].set_ylabel("SPP accuracy (%)")
+    axes[1].set_ylim(0, 100)
+    for ax in axes:
+        ax.set_xticks(x, names)
+        ax.legend(loc="lower left", ncols=2, fontsize=8, bbox_to_anchor=(0, 1.0))
+    fig.tight_layout()
+    fig.savefig(out / "spp_classes.png")
+    plt.close(fig)
+    print("[task1] spp_classes.png")
+
+    fig, ax = plt.subplots(figsize=(6.4, 3.4))
+    w = 0.8 / len(traces)
+    for i, (t, color) in enumerate(zip(traces, CATEGORICAL[1:])):
+        hist = dict(map(int, kv.split(":")) for kv in SPP_HIST.search(logs[t]).group(1).split())
+        total = sum(hist.values())
+        ds = sorted(hist)
+        ax.bar(np.array(ds) - 0.4 + w * (i + 0.5), [100 * hist[d] / total for d in ds], w * 0.92,
+               color=color, label=names[i])
+    ax.set_xticks(ds)
+    ax.set_xlabel("Prefetch degree")
+    ax.set_ylabel("Epochs at this degree (%)")
+    ax.legend(loc="upper left", fontsize=8)
+    fig.savefig(out / "spp_degree.png")
+    plt.close(fig)
+    print("[task1] spp_degree.png")
+
+
 def main():
     FIG.mkdir(parents=True, exist_ok=True)
     df = load()
+    plots = DATA / "plots"
+    plots.mkdir(exist_ok=True)
+    all_metrics(df, plots)
+    spp_internals(plots)
     pfs = [("ip_stride", "IP-stride", IPS), ("spp", "SPP", SPP)]
     bars(df, "speedup", pfs, "Speedup over baseline", "t1_speedup.png", geo=True, baseline=1.0,
          ylim=(0.95, 1.05), fmt="{:.3f}")

@@ -5,6 +5,7 @@ IP-stride and SPP at L1D against the no-prefetcher baseline (LRU at L2C), plus a
 - `stats.csv`: one row per config and trace. `report/task1.py` rebuilds it from the logs.
 - `<config>/<trace>.log`: raw ChampSim output. The first line records the command and env.
 - Figures: `report/figures/t1_*.png`, made by `python3 report/task1.py`.
+- `plots/`: analysis plots, also from `report/task1.py`. One chart per `stats.csv` metric (every config, per trace and mean), plus `spp_classes.png` (uniform vs pattern prefetches and accuracy) and `spp_degree.png` (share of epochs at each degree), both for the default SPP.
 
 `spp` is the code defaults (64 sets x 4 ways). Its logs match `ipt.SPP_IPT_SET_BITS=6.SPP_IPT_WAYS=4` exactly.
 
